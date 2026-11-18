@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { ExplainNode, TraceNode } from "mongory-js";
+import { HighlightedCli, HighlightedCode } from "./CodeBlock.js";
 
 function ExplainOrderStrip({ explain }: { explain: ExplainNode }) {
   const steps = explain.children.length > 0 && (explain.kind === "and" || explain.kind === "or")
@@ -83,7 +84,9 @@ function TraceTreeNodeItem({ node, depth }: { node: TraceNode; depth: number }) 
       </div>
 
       {showSnapshot && hasExpandedValue && (
-        <pre className="snapshot-box">{JSON.stringify(node.value, null, 2)}</pre>
+        <pre className="snapshot-box">
+          <HighlightedCode code={JSON.stringify(node.value, null, 2)} lang="js" />
+        </pre>
       )}
 
       {node.children.length > 0 && (
@@ -176,11 +179,15 @@ export function TraceTreeView({
         <div className="cli-split">
           <div className="cli-card">
             <div className="cli-card-title">matcher.explain()</div>
-            <pre>{explainText}</pre>
+            <pre>
+              <HighlightedCli text={explainText} />
+            </pre>
           </div>
           <div className="cli-card">
             <div className="cli-card-title">matcher.trace(record[{selectedIndex}])</div>
-            <pre>{traceText}</pre>
+            <pre>
+              <HighlightedCli text={traceText} />
+            </pre>
           </div>
         </div>
       )}

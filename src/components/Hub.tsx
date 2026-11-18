@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { BENCHMARKS, LANGUAGES, OPERATORS, SPEC_RULES } from "../data/ecosystem.js";
 import type { LangKey, OperatorCategory } from "../types.js";
+import { CodeBlock, HighlightedCode } from "./CodeBlock.js";
 
 const CATEGORIES: ReadonlyArray<OperatorCategory> = [
   "All",
@@ -111,10 +112,11 @@ export function Hub() {
             </ul>
           </div>
 
-          <div className="lang-card-code">
-            <div className="code-card-label">Equivalent Query Example</div>
-            <pre>{activeLang.code}</pre>
-          </div>
+          <CodeBlock
+            code={activeLang.code}
+            lang={activeLang.key}
+            label={`Equivalent Query Example · ${activeLang.name}`}
+          />
         </div>
       </section>
 
@@ -182,7 +184,9 @@ export function Hub() {
                     <InlineCodeText text={op.summary} />
                   </td>
                   <td>
-                    <code className="example-cell">{op.example}</code>
+                    <code className="example-cell">
+                      <HighlightedCode code={op.example} lang="js" />
+                    </code>
                   </td>
                 </tr>
               ))}
