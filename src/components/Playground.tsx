@@ -113,8 +113,6 @@ export function Playground() {
         const t0 = performance.now();
         matcher = mongory.compile(parsedCondition);
         compileUs = Math.max(0, (performance.now() - t0) * 1000);
-        explainText = matcher.explain();
-        explainTree = matcher.explainTree();
       } catch (err) {
         compileError = err instanceof MongoryError || err instanceof Error ? err.message : String(err);
       }
@@ -140,6 +138,11 @@ export function Playground() {
         selectedTraceText = matcher.trace(rec).trace;
         selectedTraceTree = matcher.traceTree(rec);
       }
+    }
+
+    if (matcher) {
+      explainText = matcher.explain();
+      explainTree = matcher.explainTree();
     }
 
     return {
