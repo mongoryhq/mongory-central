@@ -108,7 +108,7 @@ textarea {
 
 .badge-version {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12.5px;
   color: var(--pass);
   background: var(--pass-bg);
   border: 1px solid var(--pass-border);
@@ -161,7 +161,7 @@ textarea {
   text-decoration: none;
 }
 .btn-sm {
-  font-size: 12px;
+  font-size: 13px;
   padding: 5px 11px;
 }
 .btn-ghost {
@@ -186,7 +186,7 @@ textarea {
   display: inline-flex;
   align-items: center;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12.5px;
   padding: 2px 8px;
   border-radius: 999px;
   border: 1px solid transparent;
@@ -288,7 +288,7 @@ textarea {
   background: var(--surface);
   color: var(--text);
   border: 1px solid var(--border);
-  font-size: 12.5px;
+  font-size: 13.5px;
   padding: 9px 14px;
   border-radius: 8px;
 }
@@ -371,7 +371,7 @@ textarea {
   justify-content: space-between;
   margin-bottom: 8px;
   font-family: var(--font-mono);
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: #cbd5e1;
 }
 
@@ -381,7 +381,7 @@ textarea {
   border-radius: 6px;
   padding: 3px 9px;
   color: var(--brand);
-  font-size: 11.5px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
 }
@@ -484,7 +484,7 @@ textarea {
 
 .feature-tile-desc {
   margin: 0;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.45;
   color: var(--text-muted);
 }
@@ -537,7 +537,7 @@ textarea {
   flex-direction: column;
 }
 .metric-label {
-  font-size: 10.5px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-dim);
@@ -575,7 +575,7 @@ textarea {
   color: var(--text-muted);
   border-radius: 8px;
   padding: 6px 11px;
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s;
@@ -592,7 +592,7 @@ textarea {
 
 .preset-subbadge {
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: 12px;
   color: var(--text-dim);
 }
 .preset-btn.is-active .preset-subbadge {
@@ -607,7 +607,7 @@ textarea {
 
 .preset-description {
   margin: 0 0 14px;
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: var(--text-muted);
 }
 
@@ -645,12 +645,12 @@ textarea {
   align-items: center;
   gap: 8px;
   font-weight: 600;
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: #f1f5f9;
 }
 
 .pane-hint {
-  font-size: 11px;
+  font-size: 12.5px;
   color: var(--text-dim);
 }
 
@@ -675,7 +675,7 @@ textarea {
   background: rgba(82, 227, 115, 0.08);
   color: var(--brand);
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease;
@@ -719,7 +719,7 @@ textarea {
 .json-editor-gutter-inner {
   padding: 10px 8px 24px 4px;
   font-family: var(--font-mono);
-  font-size: 11.5px;
+  font-size: 13px;
   line-height: 20px;
   text-align: right;
   color: #475569;
@@ -750,7 +750,7 @@ textarea {
   padding: 10px 12px;
   border: 0;
   font-family: var(--font-mono);
-  font-size: 12.5px;
+  font-size: 13.5px;
   line-height: 20px;
   letter-spacing: normal;
   tab-size: 2;
@@ -808,7 +808,7 @@ textarea {
   padding: 4px 10px;
   background: rgba(15, 23, 42, 0.65);
   border-top: 1px solid rgba(148, 163, 184, 0.1);
-  font-size: 10.5px;
+  font-size: 12px;
   color: #64748b;
   flex-shrink: 0;
 }
@@ -819,7 +819,7 @@ textarea {
 }
 .editor-footer-meta {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 12px;
   color: #475569;
   flex-shrink: 0;
 }
@@ -833,7 +833,7 @@ textarea {
   border-top: 1px solid var(--fail-border);
   color: #fda4af;
   font-family: var(--font-mono);
-  font-size: 11.5px;
+  font-size: 13px;
   flex-shrink: 0;
 }
 
@@ -850,7 +850,7 @@ textarea {
   background: transparent;
   border: 0;
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: 12.5px;
   text-transform: capitalize;
   padding: 2px 8px;
   border-radius: 4px;
@@ -874,7 +874,7 @@ textarea {
   padding: 24px 12px;
   text-align: center;
   color: var(--text-dim);
-  font-size: 12.5px;
+  font-size: 13.5px;
 }
 
 .result-row {
@@ -907,13 +907,13 @@ textarea {
 
 .result-index {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12.5px;
   color: var(--text-dim);
 }
 
 .result-status {
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 700;
   padding: 1px 6px;
   border-radius: 4px;
@@ -921,14 +921,14 @@ textarea {
 
 .inspecting-tag {
   margin-left: auto;
-  font-size: 10.5px;
+  font-size: 12px;
   color: var(--cyan);
   font-weight: 600;
 }
 
 .result-preview {
   display: block;
-  font-size: 11.5px;
+  font-size: 13px;
   color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
@@ -937,7 +937,7 @@ textarea {
 
 .results-footer {
   padding: 7px 12px;
-  font-size: 11px;
+  font-size: 12.5px;
   color: var(--text-dim);
   background: var(--surface-alt);
   border-top: 1px solid var(--border);
@@ -995,7 +995,7 @@ textarea {
 
 .inspect-badge {
   font-family: var(--font-mono);
-  font-size: 11.5px;
+  font-size: 13px;
   font-weight: 600;
   padding: 2px 9px;
   border-radius: 999px;
@@ -1022,7 +1022,7 @@ textarea {
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 11.5px;
+  font-size: 13px;
   color: var(--text-muted);
 }
 .legend-item {
@@ -1056,7 +1056,7 @@ textarea {
   border: 0;
   background: transparent;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 13px;
   padding: 4px 10px;
   border-radius: 4px;
   cursor: pointer;
@@ -1080,7 +1080,7 @@ textarea {
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-muted);
   flex-shrink: 0;
@@ -1102,7 +1102,7 @@ textarea {
   border-radius: 6px;
   padding: 3px 8px;
   font-family: var(--font-mono);
-  font-size: 11.5px;
+  font-size: 13px;
 }
 
 .step-order {
@@ -1114,7 +1114,7 @@ textarea {
 }
 .step-prio {
   color: var(--text-dim);
-  font-size: 10.5px;
+  font-size: 12px;
 }
 
 .empty-debugger {
@@ -1185,7 +1185,7 @@ textarea {
 
 .status-pill {
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 700;
   padding: 1px 6px;
   border-radius: 4px;
@@ -1193,7 +1193,7 @@ textarea {
 
 .order-chip {
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: 12px;
   color: var(--cyan);
   background: var(--cyan-bg);
   padding: 1px 5px;
@@ -1201,21 +1201,21 @@ textarea {
 }
 
 .node-kind-badge {
-  font-size: 10.5px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--text-dim);
 }
 
 .node-label {
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: #f1f5f9;
   font-weight: 600;
 }
 
 .op-chip {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12.5px;
   color: #a5b4fc;
   background: rgba(99, 102, 241, 0.14);
   padding: 1px 6px;
@@ -1224,7 +1224,7 @@ textarea {
 
 .detail-chip {
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: 12px;
   color: var(--skip);
   background: var(--skip-bg);
   border: 1px solid var(--skip-border);
@@ -1234,7 +1234,7 @@ textarea {
 
 .prio-chip {
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: 12px;
   color: var(--text-dim);
 }
 
@@ -1253,7 +1253,7 @@ textarea {
   border-radius: 5px;
   padding: 2px 8px;
   color: var(--text);
-  font-size: 11.5px;
+  font-size: 13px;
   cursor: default;
 }
 .value-chip.is-expandable {
@@ -1266,7 +1266,7 @@ textarea {
   color: var(--skip);
 }
 .value-key {
-  font-size: 10px;
+  font-size: 12px;
   text-transform: uppercase;
   color: var(--text-dim);
 }
@@ -1280,7 +1280,7 @@ textarea {
   background: #060910;
   border: 1px solid var(--border);
   border-radius: 6px;
-  font-size: 11.5px;
+  font-size: 13px;
   color: #cbd5e1;
   overflow-x: auto;
 }
@@ -1303,13 +1303,13 @@ textarea {
   background: var(--surface-alt);
   border-bottom: 1px solid var(--border);
   font-family: var(--font-mono);
-  font-size: 11.5px;
+  font-size: 13px;
   color: var(--cyan);
 }
 .cli-card pre {
   margin: 0;
   padding: 12px;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.55;
   overflow-x: auto;
   color: #cbd5e1;
@@ -1387,7 +1387,7 @@ textarea {
 }
 .lang-tab-ver {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12.5px;
   color: var(--text-dim);
 }
 .lang-tab.is-active .lang-tab-ver {
@@ -1417,7 +1417,7 @@ textarea {
 }
 .lang-runtime {
   margin: 0;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-muted);
 }
 
@@ -1433,7 +1433,7 @@ textarea {
   margin-bottom: 14px;
 }
 .install-box code {
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: var(--pass);
   overflow-x: auto;
 }
@@ -1464,7 +1464,7 @@ textarea {
   padding: 7px 12px;
   background: var(--surface-alt);
   border-bottom: 1px solid var(--border);
-  font-size: 11.5px;
+  font-size: 13px;
   color: var(--text-muted);
 }
 .code-copy-btn {
@@ -1473,7 +1473,7 @@ textarea {
   border-radius: 5px;
   padding: 2px 8px;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12.5px;
   color: var(--text-muted);
   cursor: pointer;
   transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
@@ -1486,7 +1486,7 @@ textarea {
 .lang-card-code pre {
   margin: 0;
   padding: 14px;
-  font-size: 12.5px;
+  font-size: 13.5px;
   line-height: 1.55;
   overflow-x: auto;
   color: #e2e8f0;
@@ -1513,7 +1513,7 @@ textarea {
 }
 .spec-rule-card p {
   margin: 0;
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: var(--text-muted);
 }
 
@@ -1530,7 +1530,7 @@ textarea {
   color: var(--text-muted);
   border-radius: 6px;
   padding: 5px 11px;
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
 }
 .op-filter-btn.is-active {
@@ -1557,7 +1557,7 @@ th {
   background: var(--surface-alt);
   color: var(--text-muted);
   font-weight: 600;
-  font-size: 11.5px;
+  font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   padding: 10px 14px;
@@ -1579,7 +1579,7 @@ tr:last-child td {
 }
 .mono-cell {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 13px;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
@@ -1588,14 +1588,14 @@ tr:last-child td {
   font-weight: 600;
 }
 .example-cell {
-  font-size: 11.5px;
+  font-size: 13px;
   color: #cbd5e1;
   white-space: nowrap;
 }
 
 .bench-footnote {
   margin: 12px 0 0;
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: var(--text-muted);
 }
 
@@ -1613,7 +1613,7 @@ tr:last-child td {
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: var(--text-muted);
 }
 .footer-links {
