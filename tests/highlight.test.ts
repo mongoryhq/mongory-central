@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { LANGUAGES, OPERATORS } from "../src/data/ecosystem.js";
+import { PRESETS } from "../src/data/presets.js";
 import { tokenizeCliTrace, tokenizeCode } from "../src/lib/highlight.js";
 
 test("tokenizeCode preserves exact characters across all ecosystem languages", () => {
@@ -68,4 +69,27 @@ test("tokenizeCliTrace preserves text and highlights trace status tokens", () =>
   assert.ok(tokens.some((t) => t.kind === "op" && t.text === "$gte"));
   assert.ok(tokens.some((t) => t.kind === "str" && t.text === '"age"'));
   assert.ok(tokens.some((t) => t.kind === "num" && t.text === "18"));
+});
+
+test("tokenizeCode highlights JSON records, query conditions, and presets losslessly", () => {
+  for (const preset of PRESETS) {
+    const recordsJson = JSON.stringify(preset.records, null, 2);
+    const condJson = JSON.stringify(preset.condition, null, 2);
+    assert.equal(tokenizeCode(recordsJson, "json").map((t) => t.text).join(""), recordsJson);
+    assert.equal(tokenizeCode(condJson, "json").map((t) => t.text).join(""), condJson);
+  }
+
+  const sample = '{\n  "customer.tier": { "$in": ["vip", "gold"] },\n  "delta": -12.5,\n  "active": true,\n  "deletedAt": null\n}';
+  const tokens = tokenizeCode(sample, "json");
+  assert.equal(tokens.map((t) => t.text).join(""), sample);
+  assert.ok(tokens.some((t) => t.kind === "prop" && t.text === '"customer.tier"'));
+  assert.ok(tokens.some((t) => t.kind === "op" && t.text === '"$in"'));
+  assert.ok(tokens.some((t) => t.kind === "str" && t.text === '"vip"'));
+  assert.ok(tokens.some((t) => t.kind === "num" && t.text === "-12.5"));
+  assert.ok(tokens.some((t) => t.kind === "bool" && t.text === "true"));
+  assert.ok(tokens.some((t) => t.kind === "bool" && t.text === "null"));
+
+  // Mid-typing malformed JSON must still round-trip without throwing
+  const partial = '{ "orderId": "ORD-1\n  "qty": -3, undefined';
+  assert.equal(tokenizeCode(partial, "json").map((t) => t.text).join(""), partial);
 });

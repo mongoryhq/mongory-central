@@ -85,7 +85,7 @@ function TraceTreeNodeItem({ node, depth }: { node: TraceNode; depth: number }) 
 
       {showSnapshot && hasExpandedValue && (
         <pre className="snapshot-box">
-          <HighlightedCode code={JSON.stringify(node.value, null, 2)} lang="js" />
+          <HighlightedCode code={JSON.stringify(node.value, null, 2)} lang="json" />
         </pre>
       )}
 

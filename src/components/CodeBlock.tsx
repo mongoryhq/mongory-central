@@ -1,5 +1,11 @@
 import { useMemo, useState } from "react";
-import { tokenizeCliTrace, tokenizeCode, type CliTokenKind, type TokenKind } from "../lib/highlight.js";
+import {
+  tokenizeCliTrace,
+  tokenizeCode,
+  type CliTokenKind,
+  type HighlightLang,
+  type TokenKind,
+} from "../lib/highlight.js";
 import type { LangKey } from "../types.js";
 
 const CODE_CLASS: Record<TokenKind, string | undefined> = {
@@ -31,7 +37,7 @@ const CLI_CLASS: Record<CliTokenKind, string | undefined> = {
   plain: undefined,
 };
 
-export function HighlightedCode({ code, lang }: { code: string; lang: LangKey }) {
+export function HighlightedCode({ code, lang }: { code: string; lang: HighlightLang }) {
   const tokens = useMemo(() => tokenizeCode(code, lang), [code, lang]);
 
   return (

@@ -8,6 +8,7 @@ import {
   tryFormatJson,
 } from "../lib/share.js";
 import type { EvaluationState, PresetId } from "../types.js";
+import { JsonEditor } from "./JsonEditor.js";
 import { TraceTreeView } from "./TraceTreeView.js";
 
 function countAstNodes(node: ExplainNode | null): number {
@@ -271,12 +272,11 @@ export function Playground() {
             </div>
             <span className="pane-hint">Array of documents</span>
           </div>
-          <textarea
-            className={`code-editor ${evaluation.recordsError ? "has-error" : ""}`}
-            aria-label="Records JSON editor"
-            spellCheck={false}
+          <JsonEditor
+            ariaLabel="Records JSON editor"
+            hasError={Boolean(evaluation.recordsError)}
             value={recordsText}
-            onChange={(e) => setRecordsText(e.target.value)}
+            onChange={setRecordsText}
           />
           {evaluation.recordsError && (
             <div className="error-banner" role="alert">
@@ -294,12 +294,11 @@ export function Playground() {
             </div>
             <span className="pane-hint">17 built-in operators</span>
           </div>
-          <textarea
-            className={`code-editor ${evaluation.conditionError || evaluation.compileError ? "has-error" : ""}`}
-            aria-label="Query condition JSON editor"
-            spellCheck={false}
+          <JsonEditor
+            ariaLabel="Query condition JSON editor"
+            hasError={Boolean(evaluation.conditionError || evaluation.compileError)}
             value={conditionText}
-            onChange={(e) => setConditionText(e.target.value)}
+            onChange={setConditionText}
           />
           {(evaluation.conditionError || evaluation.compileError) && (
             <div className="error-banner" role="alert">

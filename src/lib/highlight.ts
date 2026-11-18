@@ -1,5 +1,7 @@
 import type { LangKey } from "../types.js";
 
+export type HighlightLang = LangKey | "json";
+
 export type TokenKind =
   | "comment"
   | "directive"
@@ -28,7 +30,8 @@ export interface CliToken {
   text: string;
 }
 
-const KEYWORDS: Record<LangKey, ReadonlySet<string>> = {
+const KEYWORDS: Record<HighlightLang, ReadonlySet<string>> = {
+  json: new Set(),
   js: new Set([
     "import",
     "from",
@@ -119,6 +122,7 @@ const KEYWORDS: Record<LangKey, ReadonlySet<string>> = {
 };
 
 const BOOLS = new Set(["true", "false", "null", "undefined", "nil", "NULL", "nullptr"]);
+const JSON_BOOLS = new Set(["true", "false", "null"]);
 
 const GO_TYPES = new Set([
   "any",
@@ -202,7 +206,10 @@ function scanQuoted(code: string, start: number): number {
   return code.length;
 }
 
-function classifyIdentifier(word: string, code: string, endPos: number, lang: LangKey): TokenKind {
+function classifyIdentifier(word: string, code: string, endPos: number, lang: HighlightLang): TokenKind {
+  if (lang === "json") {
+    return JSON_BOOLS.has(word) ? "bool" : "ident";
+  }
   if (word.startsWith("$")) return "op";
   if (BOOLS.has(word)) return "bool";
 
@@ -247,7 +254,7 @@ function classifyIdentifier(word: string, code: string, endPos: number, lang: La
  * Losslessly tokenize a snippet in JS/TS, Go, Ruby, or C99 for syntax highlighting.
  * Concatenating all returned token texts is guaranteed to equal `code`.
  */
-export function tokenizeCode(code: string, lang: LangKey): CodeToken[] {
+export function tokenizeCode(code: string, lang: HighlightLang): CodeToken[] {
   const tokens: CodeToken[] = [];
   let i = 0;
 
@@ -274,14 +281,14 @@ export function tokenizeCode(code: string, lang: LangKey): CodeToken[] {
       i = end;
       continue;
     }
-    if (lang !== "rb" && two === "//") {
+    if (lang !== "json" && lang !== "rb" && two === "//") {
       const nl = code.indexOf("\n", i);
       const end = nl === -1 ? code.length : nl;
       pushToken(tokens, "comment", code.slice(i, end));
       i = end;
       continue;
     }
-    if (lang !== "rb" && two === "/*") {
+    if (lang !== "json" && lang !== "rb" && two === "/*") {
       const close = code.indexOf("*/", i + 2);
       const end = close === -1 ? code.length : close + 2;
       pushToken(tokens, "comment", code.slice(i, end));
@@ -307,12 +314,25 @@ export function tokenizeCode(code: string, lang: LangKey): CodeToken[] {
       }
     }
 
-    // Strings & `$`-prefixed Mongory operators in quotes (`"$gte"`, `'$in'`)
-    if (ch === '"' || ch === "'" || ch === "`") {
+    // Strings, quoted JSON/map keys (`"age":`), and `$`-prefixed Mongory operators (`"$gte"`)
+    if (ch === '"' || ch === "'" || (lang !== "json" && ch === "`")) {
       const end = scanQuoted(code, i);
       const text = code.slice(i, end);
-      const inner = text.length >= 2 && text[text.length - 1] === ch ? text.slice(1, -1) : "";
-      const kind: TokenKind = /^\$[a-zA-Z_][a-zA-Z0-9_]*$/.test(inner) ? "op" : "str";
+      const isClosed = text.length >= 2 && text[text.length - 1] === ch;
+      const inner = isClosed ? text.slice(1, -1) : "";
+      const afterStr = skipHorizSpaces(code, end);
+      const isPropKey =
+        isClosed &&
+        (lang === "json" || lang === "go") &&
+        code[afterStr] === ":" &&
+        code.slice(afterStr, afterStr + 2) !== "::";
+
+      let kind: TokenKind = "str";
+      if (/^\$[a-zA-Z_][a-zA-Z0-9_]*$/.test(inner)) {
+        kind = "op";
+      } else if (isPropKey) {
+        kind = "prop";
+      }
       pushToken(tokens, kind, text);
       i = end;
       continue;
@@ -328,9 +348,11 @@ export function tokenizeCode(code: string, lang: LangKey): CodeToken[] {
       }
     }
 
-    // Numbers
-    if (/[0-9]/.test(ch)) {
-      const num = /^(?:0[xX][0-9a-fA-F_]+|\d+(?:_\d+)*(?:\.\d+(?:_\d+)*)?)/.exec(code.slice(i));
+    // Numbers (including negative JSON literals and scientific notation)
+    if (/[0-9]/.test(ch) || (lang === "json" && ch === "-" && /[0-9]/.test(code[i + 1] ?? ""))) {
+      const num = /^-?(?:0[xX][0-9a-fA-F_]+|\d+(?:_\d+)*(?:\.\d+(?:_\d+)*)?(?:[eE][+-]?\d+)?)/.exec(
+        code.slice(i)
+      );
       if (num) {
         pushToken(tokens, "num", num[0]);
         i += num[0].length;
