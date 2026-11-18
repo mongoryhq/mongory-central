@@ -7,7 +7,7 @@ export const PRESETS: ReadonlyArray<Preset> = [
     badge: "$elemMatch",
     description:
       "Match VIP or loyalty orders over $100 containing an in-stock SKU, excluding restricted regions. Notice cheap fields run before regex & $elemMatch.",
-    defaultSelectedIndex: 1,
+    defaultSelectedIndex: 0,
     condition: {
       "customer.tier": { $in: ["vip", "gold"] },
       subtotal: { $gte: 100 },
@@ -115,7 +115,7 @@ export const PRESETS: ReadonlyArray<Preset> = [
     badge: "$every · null",
     description:
       "Allow principals where all attached tokens are active ($every), a grant covers write access ($elemMatch), and revokedAt is null or missing.",
-    defaultSelectedIndex: 2,
+    defaultSelectedIndex: 0,
     condition: {
       revokedAt: null,
       tokens: {
@@ -214,7 +214,7 @@ export const PRESETS: ReadonlyArray<Preset> = [
     badge: "\\. · order",
     description:
       "Condition keys are intentionally ordered expensive-first ($regex -> $present -> escaped dot -> $eq). Mongory automatically reorders by evaluation priority.",
-    defaultSelectedIndex: 1,
+    defaultSelectedIndex: 0,
     condition: {
       note: { $regex: "urgent" },
       "meta.v2\\.enabled": true,

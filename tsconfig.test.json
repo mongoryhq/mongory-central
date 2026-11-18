@@ -12,6 +12,7 @@
   "include": [
     "src/types.ts",
     "src/lib/highlight.ts",
+    "src/lib/jsonRanges.ts",
     "src/lib/share.ts",
     "src/data/presets.ts",
     "src/data/ecosystem.ts",

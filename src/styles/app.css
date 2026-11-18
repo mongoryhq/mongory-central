@@ -731,6 +731,10 @@ textarea {
 .json-editor-ln {
   height: 20px;
 }
+.json-editor-ln.is-active-ln {
+  color: var(--cyan);
+  font-weight: 600;
+}
 .json-editor-stage {
   position: relative;
   flex: 1;
@@ -760,6 +764,24 @@ textarea {
   user-select: none;
   color: #e2e8f0;
   background: transparent;
+}
+.json-editor-content {
+  position: relative;
+  width: max-content;
+  min-width: 100%;
+}
+.json-editor-active-band {
+  position: absolute;
+  left: -12px;
+  right: -12px;
+  background: rgba(56, 189, 248, 0.08);
+  border-left: 2px solid rgba(56, 189, 248, 0.72);
+  pointer-events: none;
+  z-index: 0;
+}
+.json-editor-code {
+  position: relative;
+  z-index: 1;
 }
 .json-editor-input {
   width: 100%;

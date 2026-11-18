@@ -7,6 +7,7 @@ import {
   formatRecordPreview,
   tryFormatJson,
 } from "../lib/share.js";
+import { findJsonArrayElementRanges, type JsonLineRange } from "../lib/jsonRanges.js";
 import type { EvaluationState, PresetId } from "../types.js";
 import { JsonEditor } from "./JsonEditor.js";
 import { TraceTreeView } from "./TraceTreeView.js";
@@ -51,6 +52,7 @@ export function Playground() {
   const recordsEditorRef = useRef<HTMLTextAreaElement>(null);
   const conditionEditorRef = useRef<HTMLTextAreaElement>(null);
   const [selectedIndex, setSelectedIndex] = useState(initialState.selectedIndex);
+  const [scrollToRecordTick, setScrollToRecordTick] = useState(() => (initialState.selectedIndex > 0 ? 1 : 0));
   const [resultFilter, setResultFilter] = useState<"all" | "matched" | "missed">("all");
   const [debugMode, setDebugMode] = useState<"visual" | "text">("visual");
   const [copiedShare, setCopiedShare] = useState(false);
@@ -66,6 +68,7 @@ export function Playground() {
       setRecordsText(shared.recordsText ?? JSON.stringify(targetPreset.records, null, 2));
       setConditionText(shared.conditionText ?? JSON.stringify(targetPreset.condition, null, 2));
       setSelectedIndex(shared.selectedIndex ?? targetPreset.defaultSelectedIndex);
+      setScrollToRecordTick((t) => t + 1);
     };
     window.addEventListener("hashchange", onHashChange);
     return () => window.removeEventListener("hashchange", onHashChange);
@@ -161,6 +164,34 @@ export function Playground() {
       ? Math.min(selectedIndex, evaluation.records.length - 1)
       : 0;
 
+  const recordRanges = useMemo(() => findJsonArrayElementRanges(recordsText), [recordsText]);
+  const activeRecordRange = recordRanges[effectiveIndex] ?? null;
+  const activeRangeRef = useRef<JsonLineRange | null>(activeRecordRange);
+  activeRangeRef.current = activeRecordRange;
+
+  useEffect(() => {
+    if (scrollToRecordTick === 0) return;
+    const ta = recordsEditorRef.current;
+    const range = activeRangeRef.current;
+    if (!ta || !range) return;
+    const rawTarget = range.startLine <= 2 ? 0 : (range.startLine - 1) * 20;
+    const maxScroll = Math.max(0, ta.scrollHeight - ta.clientHeight);
+    const targetTop = Math.min(Math.max(0, rawTarget), maxScroll);
+    const prefersReducedMotion =
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    ta.scrollTo({
+      top: targetTop,
+      behavior: prefersReducedMotion ? "auto" : "smooth",
+    });
+  }, [scrollToRecordTick]);
+
+  const selectRecord = (idx: number) => {
+    setSelectedIndex(idx);
+    setScrollToRecordTick((t) => t + 1);
+  };
+
   const selectPreset = (id: PresetId) => {
     const preset = PRESETS.find((p) => p.id === id);
     if (!preset) return;
@@ -168,6 +199,7 @@ export function Playground() {
     setRecordsText(JSON.stringify(preset.records, null, 2));
     setConditionText(JSON.stringify(preset.condition, null, 2));
     setSelectedIndex(preset.defaultSelectedIndex);
+    setScrollToRecordTick((t) => t + 1);
     setResultFilter("all");
     if (window.location.hash) {
       window.history.replaceState(null, "", "#playground");
@@ -197,6 +229,7 @@ export function Playground() {
     if (rf.ok) setRecordsText(rf.formatted);
     const cf = tryFormatJson(conditionText);
     if (cf.ok) setConditionText(cf.formatted);
+    setScrollToRecordTick((t) => t + 1);
   };
 
   const visibleIndices = useMemo(() => {
@@ -299,6 +332,7 @@ export function Playground() {
             ariaLabel="Records JSON editor"
             hasError={Boolean(evaluation.recordsError)}
             hint="Click anywhere to edit or paste JSON records"
+            highlightRange={activeRecordRange}
             value={recordsText}
             onChange={setRecordsText}
           />
@@ -390,7 +424,7 @@ export function Playground() {
                     role="option"
                     aria-selected={isSelected}
                     className={`result-row ${ok ? "is-match" : "is-miss"} ${isSelected ? "is-selected" : ""}`}
-                    onClick={() => setSelectedIndex(idx)}
+                    onClick={() => selectRecord(idx)}
                   >
                     <div className="result-row-top">
                       <span className="result-index">#{idx}</span>
