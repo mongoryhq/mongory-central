@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { MongoryError, mongory, type ExplainNode } from "mongory-js";
 import { PRESETS } from "../data/presets.js";
 import {
@@ -10,6 +10,19 @@ import {
 import type { EvaluationState, PresetId } from "../types.js";
 import { JsonEditor } from "./JsonEditor.js";
 import { TraceTreeView } from "./TraceTreeView.js";
+
+function EditIcon() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path
+        d="M11.7 1.8a1.5 1.5 0 0 1 2.1 2.1L5.4 12.3l-3.1.8.8-3.1 8.6-8.2Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 function countAstNodes(node: ExplainNode | null): number {
   if (!node) return 0;
@@ -35,6 +48,8 @@ export function Playground() {
   const [presetId, setPresetId] = useState<PresetId>(initialState.presetId);
   const [recordsText, setRecordsText] = useState(initialState.recordsText);
   const [conditionText, setConditionText] = useState(initialState.conditionText);
+  const recordsEditorRef = useRef<HTMLTextAreaElement>(null);
+  const conditionEditorRef = useRef<HTMLTextAreaElement>(null);
   const [selectedIndex, setSelectedIndex] = useState(initialState.selectedIndex);
   const [resultFilter, setResultFilter] = useState<"all" | "matched" | "missed">("all");
   const [debugMode, setDebugMode] = useState<"visual" | "text">("visual");
@@ -262,7 +277,7 @@ export function Playground() {
 
       <div className="three-pane-grid">
         {/* Column 1: Records Editor */}
-        <div className="pane">
+        <div className="pane pane-editor">
           <div className="pane-header">
             <div className="pane-title">
               <span>Records (JSON)</span>
@@ -270,11 +285,20 @@ export function Playground() {
                 {evaluation.records ? `${evaluation.records.length} items` : "invalid"}
               </span>
             </div>
-            <span className="pane-hint">Array of documents</span>
+            <button
+              type="button"
+              className="editor-edit-badge"
+              onClick={() => recordsEditorRef.current?.focus()}
+            >
+              <EditIcon />
+              <span>Editable</span>
+            </button>
           </div>
           <JsonEditor
+            textareaRef={recordsEditorRef}
             ariaLabel="Records JSON editor"
             hasError={Boolean(evaluation.recordsError)}
+            hint="Click anywhere to edit or paste JSON records"
             value={recordsText}
             onChange={setRecordsText}
           />
@@ -286,17 +310,26 @@ export function Playground() {
         </div>
 
         {/* Column 2: Query Condition Editor */}
-        <div className="pane">
+        <div className="pane pane-editor">
           <div className="pane-header">
             <div className="pane-title">
               <span>Query Condition (JSON)</span>
               <span className="pill pill-cyan">mongory-spec v0.2.0</span>
             </div>
-            <span className="pane-hint">17 built-in operators</span>
+            <button
+              type="button"
+              className="editor-edit-badge"
+              onClick={() => conditionEditorRef.current?.focus()}
+            >
+              <EditIcon />
+              <span>Editable</span>
+            </button>
           </div>
           <JsonEditor
+            textareaRef={conditionEditorRef}
             ariaLabel="Query condition JSON editor"
             hasError={Boolean(evaluation.conditionError || evaluation.compileError)}
+            hint="Try editing $gte, $in, $or, or dot paths"
             value={conditionText}
             onChange={setConditionText}
           />
