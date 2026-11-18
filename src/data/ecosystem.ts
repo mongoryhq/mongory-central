@@ -156,10 +156,10 @@ export const SPEC_RULES: ReadonlyArray<{ title: string; rule: string }> = [
 ];
 
 export const BENCHMARKS: ReadonlyArray<BenchmarkRow> = [
-  { caseName: "simple", description: "{ age: { $gte: 18 } }", jsNodeNs: "22.0 ns", jsBunNs: "7.8 ns", goMapsNs: "26.61 ns", goAlloc: "0 allocs/op" },
-  { caseName: "or", description: "$or(age >= 18, status == active)", jsNodeNs: "40.1 ns", jsBunNs: "17.5 ns", goMapsNs: "40.21 ns", goAlloc: "0 allocs/op" },
-  { caseName: "nested_and", description: "profile.city + status + age < 40", jsNodeNs: "56.4 ns", jsBunNs: "21.6 ns", goMapsNs: "43.39 ns", goAlloc: "0 allocs/op" },
-  { caseName: "in_array_field", description: "tags $in [go, rust]", jsNodeNs: "35.4 ns", jsBunNs: "15.3 ns", goMapsNs: "46.70 ns", goAlloc: "0 allocs/op" },
-  { caseName: "large_in_500", description: "name $in [500 items] (Set lookup)", jsNodeNs: "42.8 ns", jsBunNs: "16.1 ns", goMapsNs: "28.13 ns", goAlloc: "0 allocs/op" },
-  { caseName: "regex", description: "name $regex ^user[a-f]$", jsNodeNs: "39.5 ns", jsBunNs: "17.3 ns", goMapsNs: "43.98 ns", goAlloc: "0 allocs/op" },
+  { caseName: "simple", description: "{ age: { $gte: 18 } }", jsNodeNs: "18.7 ns", jsBunNs: "7.8 ns", goMapsNs: "25.12 ns", goAlloc: "0 allocs/op" },
+  { caseName: "or", description: "$or(age >= 18, status == active)", jsNodeNs: "43.0 ns", jsBunNs: "17.5 ns", goMapsNs: "39.86 ns", goAlloc: "0 allocs/op" },
+  { caseName: "nested_and", description: "profile.city + status + age < 40", jsNodeNs: "54.6 ns", jsBunNs: "21.6 ns", goMapsNs: "42.52 ns", goAlloc: "0 allocs/op" },
+  { caseName: "in_array_field", description: "tags $in [go, rust]", jsNodeNs: "39.0 ns", jsBunNs: "15.3 ns", goMapsNs: "45.20 ns", goAlloc: "0 allocs/op" },
+  { caseName: "large_in_500", description: "name $in [500 items] (Set lookup)", jsNodeNs: "41.9 ns", jsBunNs: "16.1 ns", goMapsNs: "28.13 ns", goAlloc: "0 allocs/op" },
+  { caseName: "regex", description: "name $regex ^user[a-f]$", jsNodeNs: "39.7 ns", jsBunNs: "17.3 ns", goMapsNs: "44.37 ns", goAlloc: "0 allocs/op" },
 ];
