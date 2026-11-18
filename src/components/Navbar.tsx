@@ -1,32 +1,14 @@
-import type { ReactNode } from "react";
+import { MicrochipLogo } from "./Icons.js";
 
 interface NavbarProps {
   activeSection: string;
   onJump: (id: string) => void;
 }
 
-function BrandMark(): ReactNode {
-  return (
-    <svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true">
-      <rect width="32" height="32" rx="8" fill="#0f172a" stroke="#334155" strokeWidth="1.5" />
-      <path
-        d="M7.5 22V10l5.2 6.2L18 10v12"
-        fill="none"
-        stroke="#10b981"
-        strokeWidth="2.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <circle cx="24" cy="11.5" r="2.3" fill="#38bdf8" />
-      <circle cx="24" cy="20.5" r="2.3" fill="#f59e0b" />
-    </svg>
-  );
-}
-
 const NAV_ITEMS = [
   { id: "playground", label: "Playground" },
   { id: "languages", label: "Languages" },
-  { id: "operators", label: "Operators & Spec" },
+  { id: "operators", label: "Docs & Spec" },
   { id: "benchmarks", label: "Benchmarks" },
 ];
 
@@ -36,15 +18,15 @@ export function Navbar({ activeSection, onJump }: NavbarProps) {
       <div className="topbar-inner">
         <a
           className="brand"
-          href="#playground"
+          href="#hero"
           onClick={(e) => {
             e.preventDefault();
-            onJump("playground");
+            onJump("hero");
           }}
         >
-          <BrandMark />
+          <MicrochipLogo size={26} />
           <span className="brand-name">Mongory</span>
-          <span className="badge badge-version">mongory-js@0.1.0</span>
+          <span className="badge-version">mongory-js@0.1.0</span>
         </a>
 
         <nav className="topnav" aria-label="Primary sections">
@@ -67,7 +49,7 @@ export function Navbar({ activeSection, onJump }: NavbarProps) {
             target="_blank"
             rel="noreferrer"
           >
-            GitHub Org ↗
+            GitHub ↗
           </a>
         </div>
       </div>

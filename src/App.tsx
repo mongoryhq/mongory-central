@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
+import { Hero } from "./components/Hero.js";
 import { Hub } from "./components/Hub.js";
 import { Navbar } from "./components/Navbar.js";
 import { Playground } from "./components/Playground.js";
 
-const SECTION_IDS = ["playground", "languages", "operators", "benchmarks"] as const;
+const SECTION_IDS = ["hero", "playground", "languages", "operators", "benchmarks"] as const;
 
 export function App() {
-  const [activeSection, setActiveSection] = useState<string>("playground");
+  const [activeSection, setActiveSection] = useState<string>("hero");
 
   const jumpTo = (id: string) => {
     setActiveSection(id);
@@ -17,6 +18,11 @@ export function App() {
   };
 
   useEffect(() => {
+    if (window.location.hash.startsWith("#state=")) {
+      const pg = document.getElementById("playground");
+      pg?.scrollIntoView({ behavior: "auto", block: "start" });
+    }
+
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
@@ -39,6 +45,7 @@ export function App() {
     <div className="app-shell">
       <Navbar activeSection={activeSection} onJump={jumpTo} />
       <main className="main-container">
+        <Hero onJump={jumpTo} />
         <Playground />
         <Hub />
       </main>

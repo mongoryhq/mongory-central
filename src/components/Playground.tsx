@@ -199,12 +199,12 @@ export function Playground() {
 
   return (
     <section id="playground" className="playground-section">
-      <div className="hero-strip">
+      <div className="playground-section-head">
         <div>
-          <h1>In-Memory MongoDB Query Matcher with Visual Explain &amp; Trace</h1>
+          <h2>Interactive Query Playground</h2>
           <p className="hero-subtitle">
             Runs live in your browser via zero-dependency <code>mongory-js@0.1.0</code>. Edit records or conditions,
-            inspect cost-sorted priority execution, and pinpoint short-circuit skips on every record.
+            inspect priority-ordered plans, and trace short-circuit skips on every record.
           </p>
         </div>
         <div className="hero-metrics">
