@@ -44,14 +44,17 @@ const { tree } = matcher.traceTree(users[0]);`,
 
 import "github.com/mongoryhq/mongory-go"
 
-m := mongory.MustCompile(mongory.M{
-  "status": "active",
-  "age":    mongory.M{"$gte": 18},
-  "$or":    mongory.A{mongory.M{"tags": "go"}, mongory.M{"role": "admin"}},
-})
+func filterUsers(users []mongory.M) ([]mongory.M, string) {
+	m := mongory.MustCompile(mongory.M{
+		"status": "active",
+		"age":    mongory.M{"$gte": 18},
+		"$or":    mongory.A{mongory.M{"tags": "go"}, mongory.M{"role": "admin"}},
+	})
 
-matched := mongory.Filter(users, m)
-ok, trace := m.Trace(users[0])`,
+	matched := mongory.Filter(users, m)
+	_, trace := m.Trace(users[0])
+	return matched, trace
+}`,
   },
   {
     key: "rb",
@@ -62,21 +65,23 @@ ok, trace := m.Trace(users[0])`,
     installCmd: "gem install mongory",
     runtime: "Ruby >= 2.6 · optional native C extension (mongory-core) + pure Ruby fallback",
     highlights: [
-      "Chainable collection DSL (`records.mongory.where(...).or(...)`) + symbol operator sugar",
+      "Chainable collection DSL (`records.mongory.where(...).any_of(...)`) + symbol operator sugar",
       "Seamless ActiveRecord / custom converter integration via `Mongory.register`",
       "Colored CLI `explain` and `trace` visualization + `c` backend for 3-10x speedups",
       "Precompiled multi-platform Ruby 2.6-4.0 native gems (Linux musl/glibc, macOS, Windows)",
     ],
     code: `require "mongory"
 
-matcher = Mongory.compile(
-  status: "active",
-  :age.gte => 18,
-  :$or => [{ tags: "ruby" }, { role: "admin" }]
-)
+Mongory.register(Array)
+Mongory.enable_symbol_snippets!
 
-matched = users.select { |u| matcher.match?(u) }
-matcher.trace(users.first)`,
+query = users.mongory
+  .where(status: "active", :age.gte => 18)
+  .any_of({ tags: "ruby" }, { role: "admin" })
+
+matched = query.to_a
+query.explain
+query.trace { |u| puts u }`,
   },
   {
     key: "core",
@@ -92,15 +97,18 @@ matcher.trace(users.first)`,
       "Pluggable regex engine & external value adapters (`MG_TABLE_WRAP`, custom converters)",
       "Foundation backing `mongory-rb` native C acceleration and future language bindings",
     ],
-    code: `mongory_init();
+    code: `#include <mongory-core.h>
+
+mongory_init();
 mongory_memory_pool *pool = mongory_memory_pool_new();
 mongory_value *query = MG_TABLE_WRAP(pool, 2,
   "status", mongory_value_wrap_s(pool, "active"),
   "age", MG_TABLE_WRAP(pool, 1, "$gte", mongory_value_wrap_i(pool, 18))
 );
-mongory_matcher *m = mongory_matcher_new(pool, query);
+mongory_matcher *m = mongory_matcher_new(pool, query, NULL);
 bool ok = mongory_matcher_match(m, doc);
-pool->free(pool);`,
+pool->free(pool);
+mongory_cleanup();`,
   },
 ];
 
