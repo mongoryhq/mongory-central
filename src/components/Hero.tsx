@@ -28,7 +28,7 @@ export function Hero({ onJump }: HeroProps) {
           </div>
           <div className="hero-wordmark">Mongory</div>
           <p className="hero-tagline">
-            Cross-language in-memory rules &amp; query matching unified by{" "}
+            Zero-database query matching &amp; visual Explain/Trace unified by{" "}
             <a href="https://github.com/mongoryhq/mongory-spec" target="_blank" rel="noreferrer">
               mongory-spec v0.2.0
             </a>
@@ -72,9 +72,9 @@ export function Hero({ onJump }: HeroProps) {
 
           <div className="showcase-body">
             <h1 className="showcase-heading">
-              A fast, multi-language
+              Cross-language, in-memory
               <br />
-              MongoDB query engine
+              Mongo-style rule engine
             </h1>
 
             <div className="showcase-code-box">
@@ -148,7 +148,7 @@ export function Hero({ onJump }: HeroProps) {
                 </div>
                 <div className="feature-tile-title">Lightweight</div>
                 <p className="feature-tile-desc">
-                  Embedded, minimal resource consumption
+                  Zero database, minimal resource footprint
                 </p>
               </button>
             </div>
