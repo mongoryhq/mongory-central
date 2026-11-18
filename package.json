@@ -1,6 +1,6 @@
 {
   "name": "mongory-central",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -11,7 +11,7 @@
     "test": "tsc -p tsconfig.test.json && node --test dist-test/tests/*.test.js"
   },
   "dependencies": {
-    "mongory-js": "^0.1.0",
+    "mongory-js": "^0.1.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

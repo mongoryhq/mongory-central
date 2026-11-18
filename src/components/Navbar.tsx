@@ -26,7 +26,7 @@ export function Navbar({ activeSection, onJump }: NavbarProps) {
         >
           <MicrochipLogo size={26} />
           <span className="brand-name">Mongory</span>
-          <span className="badge-version">mongory-js@0.1.0</span>
+          <span className="badge-version">mongory-js@0.1.1</span>
         </a>
 
         <nav className="topnav" aria-label="Primary sections">

@@ -255,7 +255,7 @@ export function Playground() {
         <div>
           <h2>Interactive Query Playground</h2>
           <p className="hero-subtitle">
-            Runs live in your browser via zero-dependency <code>mongory-js@0.1.0</code>. Edit records or conditions,
+            Runs live in your browser via zero-dependency <code>mongory-js@0.1.1</code>. Edit records or conditions,
             inspect priority-ordered plans, and trace short-circuit skips on every record.
           </p>
         </div>

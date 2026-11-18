@@ -64,3 +64,23 @@ test("ecosystem hub covers all 4 languages, 17 operators, spec rules, and benchm
   assert.ok(SPEC_RULES.length >= 5);
   assert.ok(BENCHMARKS.length >= 6);
 });
+
+test("arrays preset updates root and field priorities after lazy arrayRecord build", () => {
+  const arraysPreset = PRESETS.find((p) => p.id === "arrays");
+  assert.ok(arraysPreset);
+  const matcher = mongory.compile(arraysPreset.condition);
+  assert.equal(matcher.explainTree().priority, 34);
+  const traced = matcher.traceTree(arraysPreset.records[0]);
+  assert.equal(traced.matched, true);
+  assert.equal(traced.tree.priority, 40);
+  const afterExplain = matcher.explainTree();
+  assert.equal(afterExplain.priority, 40);
+  assert.deepEqual(
+    afterExplain.children.map((c) => [c.field, c.priority]),
+    [
+      ["tags", 6],
+      ["reviews", 14],
+      ["scores", 19],
+    ],
+  );
+});
