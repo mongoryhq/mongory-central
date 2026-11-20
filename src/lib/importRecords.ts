@@ -209,12 +209,11 @@ export function parseCsvToRecords(input: string): { ok: true; records: Record<st
     return { ok: false, error: "CSV header row is empty." };
   }
 
-  const seen = new Map<string, number>();
+  const headerCounts = new Map<string, number>();
   const headers = rawHeaders.map((h, idx) => {
-    const base = h || `col_${idx + 1}`;
-    const count = seen.get(base) ?? 0;
-    seen.set(base, count + 1);
-    return count === 0 ? base : `${base}_${count + 1}`;
+    const name = h || `col_${idx + 1}`;
+    headerCounts.set(name, (headerCounts.get(name) ?? 0) + 1);
+    return name;
   });
 
   const records: Record<string, unknown>[] = [];
@@ -225,8 +224,20 @@ export function parseCsvToRecords(input: string): { ok: true; records: Record<st
     }
     const obj: Record<string, unknown> = {};
     for (let c = 0; c < headers.length; c++) {
+      const key = headers[c];
       const cell = cells[c];
-      obj[headers[c]] = cell ? coerceCsvCell(cell) : null;
+      if ((headerCounts.get(key) ?? 1) > 1) {
+        if (!Array.isArray(obj[key])) {
+          obj[key] = [];
+        }
+        // Omit blank unquoted cells in repeated columns so variable-length lists
+        // (e.g. tag,tag,tag with `js,ts,`) produce ["js","ts"] instead of ["js","ts",null].
+        if (cell && (cell.quoted || cell.value.trim() !== "")) {
+          (obj[key] as unknown[]).push(coerceCsvCell(cell));
+        }
+      } else {
+        obj[key] = cell ? coerceCsvCell(cell) : null;
+      }
     }
     records.push(obj);
   }

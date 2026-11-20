@@ -58,15 +58,16 @@ test("parseCsvToRecords supports Excel exports (TRUE/FALSE, empty \"\", BOM, sep
   }
 });
 
-test("parseCsvToRecords deduplicates repeated headers and fills missing trailing cells with null", () => {
-  const csv = "tag,tag,\na,b\nx\n";
+test("parseCsvToRecords merges repeated headers into arrays and skips blank unquoted cells", () => {
+  const csv = 'tag,tag,tag,\na,b,c\nx,,""\n,,,\n';
   const res = parseCsvToRecords(csv);
   assert.equal(res.ok, true);
   if (!res.ok) return;
 
   assert.deepEqual(res.records, [
-    { tag: "a", tag_2: "b", col_3: null },
-    { tag: "x", tag_2: null, col_3: null },
+    { tag: ["a", "b", "c"], col_4: null },
+    { tag: ["x", ""], col_4: null },
+    { tag: [], col_4: null },
   ]);
 });
 
