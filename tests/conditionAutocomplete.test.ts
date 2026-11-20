@@ -76,6 +76,31 @@ test("getConditionKeySuggestions prioritizes fields at root and operators inside
   assert.equal(subSuggestions[0].key, "city");
 });
 
+test("getConditionKeySuggestions suggests sub-fields immediately in multi-level nested objects and $elemMatch", () => {
+  const fields = extractRecordFieldSuggestions([
+    {
+      a: { b: { c: 1, d: "ok" } },
+      reviews: [{ rating: 5, verified: true }],
+    },
+  ]);
+
+  // Deeply nested `{ "a": { "b": { "" } } }` with empty prefix should show `c` and `d` first (not truncated by operators!)
+  const deepText = '{ "a": { "b": { "" } } }';
+  const deepCtx = detectJsonKeyContext(deepText, deepText.indexOf('""') + 1)!;
+  assert.deepEqual(deepCtx.fieldPath, ["a", "b"]);
+  const deepSuggestions = getConditionKeySuggestions(deepCtx, fields);
+  assert.equal(deepSuggestions[0].key, "c");
+  assert.equal(deepSuggestions[1].key, "d");
+
+  // Inside `{ "reviews": { "$elemMatch": { "" } } }`, element sub-fields `rating` / `verified` come first
+  const elemText = '{ "reviews": { "$elemMatch": { "" } } }';
+  const elemCtx = detectJsonKeyContext(elemText, elemText.indexOf('""') + 1)!;
+  assert.deepEqual(elemCtx.fieldPath, ["reviews"]);
+  const elemSuggestions = getConditionKeySuggestions(elemCtx, fields);
+  assert.equal(elemSuggestions[0].key, "rating");
+  assert.equal(elemSuggestions[1].key, "verified");
+});
+
 test("applyKeySuggestion inserts closing quote and colon when missing, and preserves existing colon", () => {
   const text1 = '{\n  "$g';
   const ctx1 = detectJsonKeyContext(text1, text1.length)!;

@@ -21,6 +21,7 @@ export interface KeyCompletionContext {
   hasColonAfter: boolean;
   nestingDepth: number;
   parentKey: string | null;
+  fieldPath: string[];
 }
 
 export const OPERATOR_SUGGESTIONS: readonly OperatorSuggestion[] = [
@@ -139,6 +140,7 @@ export function detectJsonKeyContext(text: string, cursor: number): KeyCompletio
     openQuote: number;
     nestingDepth: number;
     parentKey: string | null;
+    fieldPath: string[];
   } | null = null;
 
   for (let i = 0; i < pos; i++) {
@@ -174,10 +176,14 @@ export function detectJsonKeyContext(text: string, cursor: number): KeyCompletio
       stringIsKey = Boolean(top && top.type === "{" && top.expectingKey);
       if (stringIsKey) {
         let parentKey: string | null = null;
-        for (let s = stack.length - 2; s >= 0; s--) {
-          if (stack[s].type === "{" && stack[s].lastKey !== null) {
-            parentKey = stack[s].lastKey;
-            break;
+        const fieldPath: string[] = [];
+        for (let s = 0; s < stack.length - 1; s++) {
+          const frame = stack[s];
+          if (frame.type === "{" && frame.lastKey !== null) {
+            parentKey = frame.lastKey;
+            if (!frame.lastKey.startsWith("$")) {
+              fieldPath.push(...frame.lastKey.split("."));
+            }
           }
         }
         const objectDepth = stack.filter((f) => f.type === "{").length;
@@ -185,6 +191,7 @@ export function detectJsonKeyContext(text: string, cursor: number): KeyCompletio
           openQuote: i,
           nestingDepth: objectDepth,
           parentKey,
+          fieldPath,
         };
       }
       continue;
@@ -257,6 +264,7 @@ export function detectJsonKeyContext(text: string, cursor: number): KeyCompletio
     hasColonAfter,
     nestingDepth: activeKeyCtx.nestingDepth,
     parentKey: activeKeyCtx.parentKey,
+    fieldPath: activeKeyCtx.fieldPath,
   };
 }
 
@@ -273,37 +281,50 @@ export function getConditionKeySuggestions(
     ctx.parentKey !== null &&
     !CONTAINER_OPERATORS.has(ctx.parentKey);
 
-  const subFieldPrefix = isFieldOperatorContext && ctx.parentKey ? `${ctx.parentKey}.` : null;
+  const pathPrefix = ctx.fieldPath.length > 0 ? `${ctx.fieldPath.join(".")}.` : null;
+
+  const directSubKeys: FieldSuggestion[] = [];
+  if (pathPrefix) {
+    const seen = new Set<string>();
+    for (const f of fields) {
+      if (f.key.startsWith(pathPrefix)) {
+        const rest = f.key.slice(pathPrefix.length);
+        if (rest && !seen.has(rest)) {
+          seen.add(rest);
+          directSubKeys.push({ key: rest, kind: "field", detail: f.detail });
+        }
+      }
+    }
+    directSubKeys.sort((a, b) => {
+      const aDots = a.key.split(".").length;
+      const bDots = b.key.split(".").length;
+      if (aDots !== bDots) return aDots - bDots;
+      return a.key.localeCompare(b.key);
+    });
+  }
 
   let ordered: KeySuggestion[];
   if (query.startsWith("$")) {
     ordered = [...OPERATOR_SUGGESTIONS];
-  } else if (isFieldOperatorContext) {
-    // Inside `{ "field": { "|" } }`: prioritize field operators and direct sub-keys of `field`.
-    const directSubKeys: FieldSuggestion[] = [];
-    if (subFieldPrefix) {
-      const seen = new Set<string>();
-      for (const f of fields) {
-        if (f.key.startsWith(subFieldPrefix)) {
-          const rest = f.key.slice(subFieldPrefix.length);
-          if (rest && !seen.has(rest)) {
-            seen.add(rest);
-            directSubKeys.push({ key: rest, kind: "field", detail: f.detail });
-          }
-        }
-      }
-    }
+  } else if (directSubKeys.length > 0) {
+    // Nested object or array-of-objects field (e.g. `profile: { "|" }`, `a: { b: { "|" } }`,
+    // `reviews: { $elemMatch: { "|" } }`): prioritize its sub-fields, then operators.
     const fieldOps = OPERATOR_SUGGESTIONS.filter((o) => o.scope === "field" || o.scope === "both");
-    ordered = [...fieldOps, ...directSubKeys];
+    ordered = [...directSubKeys, ...fieldOps];
+  } else if (isFieldOperatorContext) {
+    // Scalar field object (e.g. `age: { "|" }`): prioritize field operators, keep fields as fallback.
+    const fieldOps = OPERATOR_SUGGESTIONS.filter((o) => o.scope === "field" || o.scope === "both");
+    ordered = [...fieldOps, ...fields];
   } else {
-    // Root object or inside $and / $or / $not / $elemMatch / $every: prioritize record fields then logical operators.
+    // Root object or inside top-level $and / $or / $not / $elemMatch / $every.
     const rootOps = OPERATOR_SUGGESTIONS.filter((o) => o.scope === "both");
     const otherOps = OPERATOR_SUGGESTIONS.filter((o) => o.scope === "field");
     ordered = [...fields, ...rootOps, ...otherOps];
   }
 
+  const maxResults = 20;
   if (!query) {
-    return ordered.slice(0, 12);
+    return ordered.slice(0, maxResults);
   }
 
   const prefixMatches: KeySuggestion[] = [];
@@ -319,7 +340,7 @@ export function getConditionKeySuggestions(
     }
   }
 
-  return [...prefixMatches, ...containsMatches].slice(0, 12);
+  return [...prefixMatches, ...containsMatches].slice(0, maxResults);
 }
 
 /**
