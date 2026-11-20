@@ -1,4 +1,6 @@
-export const MAX_IMPORT_FILE_BYTES = 2 * 1024 * 1024; // 2 MB
+export const MAX_IMPORT_FILE_BYTES = 2 * 1024 * 1024; // 2 MB raw input
+export const MAX_IMPORT_OUTPUT_BYTES = 2 * 1024 * 1024; // 2 MB formatted JSON output
+export const MAX_IMPORT_RECORDS = 5000;
 
 export function formatFileSize(bytes: number): string {
   if (bytes >= 1024 * 1024) {
@@ -17,6 +19,28 @@ export function validateImportFileSize(bytes: number, maxBytes = MAX_IMPORT_FILE
   return null;
 }
 
+/**
+ * Decodes an uploaded file ArrayBuffer, detecting UTF-8, UTF-16LE, and UTF-16BE
+ * BOMs (common in Excel exports) and flagging invalid UTF-8 replacement chars.
+ */
+export function decodeImportBuffer(buffer: ArrayBuffer): { text: string; warning?: string } {
+  const bytes = new Uint8Array(buffer);
+  let encoding = "utf-8";
+  if (bytes.length >= 2 && bytes[0] === 0xff && bytes[1] === 0xfe) {
+    encoding = "utf-16le";
+  } else if (bytes.length >= 2 && bytes[0] === 0xfe && bytes[1] === 0xff) {
+    encoding = "utf-16be";
+  }
+  const text = new TextDecoder(encoding).decode(bytes);
+  if (encoding === "utf-8" && text.includes("\uFFFD")) {
+    return {
+      text,
+      warning: "Non-UTF-8 characters detected; re-save as UTF-8 CSV if text looks garbled.",
+    };
+  }
+  return { text };
+}
+
 export type ImportRecordsResult =
   | {
       ok: true;
@@ -24,6 +48,7 @@ export type ImportRecordsResult =
       records: unknown[];
       formatted: string;
       count: number;
+      warnings: string[];
     }
   | {
       ok: false;
@@ -36,6 +61,7 @@ interface CsvCell {
 }
 
 const JSON_NUMBER_RE = /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/;
+const JSON_INTEGER_RE = /^-?(?:0|[1-9]\d*)$/;
 
 function coerceCsvCell(cell: CsvCell): unknown {
   if (cell.quoted) {
@@ -58,10 +84,23 @@ function coerceCsvCell(cell: CsvCell): unknown {
   if (JSON_NUMBER_RE.test(trimmed)) {
     const num = Number(trimmed);
     if (Number.isFinite(num)) {
+      // Preserve long integer IDs (e.g. order/card numbers > 2^53 - 1) as strings to avoid precision loss.
+      if (JSON_INTEGER_RE.test(trimmed) && !Number.isSafeInteger(num)) {
+        return trimmed;
+      }
       return num;
     }
   }
   return trimmed;
+}
+
+function setOwnProperty(obj: Record<string, unknown>, key: string, value: unknown): void {
+  Object.defineProperty(obj, key, {
+    value,
+    enumerable: true,
+    writable: true,
+    configurable: true,
+  });
 }
 
 function detectDelimiter(text: string): { delimiter: string; body: string } {
@@ -211,9 +250,11 @@ function parseCsvRows(input: string): { ok: true; rows: CsvCell[][] } | { ok: fa
 }
 
 /**
- * Converts CSV text with a header row into an array of JSON-compatible record objects.
+ * Converts CSV/TSV text with a header row into an array of JSON-compatible record objects.
  */
-export function parseCsvToRecords(input: string): { ok: true; records: Record<string, unknown>[] } | { ok: false; error: string } {
+export function parseCsvToRecords(
+  input: string,
+): { ok: true; records: Record<string, unknown>[]; extraColumnRows: number } | { ok: false; error: string } {
   const parsed = parseCsvRows(input);
   if (!parsed.ok) {
     return parsed;
@@ -236,18 +277,29 @@ export function parseCsvToRecords(input: string): { ok: true; records: Record<st
   });
 
   const records: Record<string, unknown>[] = [];
+  let extraColumnRows = 0;
+
   for (let r = 1; r < rows.length; r++) {
     const cells = rows[r];
     if (cells.length === 1 && !cells[0].quoted && cells[0].value.trim() === "") {
       continue;
+    }
+    if (records.length >= MAX_IMPORT_RECORDS) {
+      return {
+        ok: false,
+        error: `Too many CSV rows (exceeds maximum of ${MAX_IMPORT_RECORDS.toLocaleString()} records).`,
+      };
+    }
+    if (cells.length > headers.length) {
+      extraColumnRows++;
     }
     const obj: Record<string, unknown> = {};
     for (let c = 0; c < headers.length; c++) {
       const key = headers[c];
       const cell = cells[c];
       if ((headerCounts.get(key) ?? 1) > 1) {
-        if (!Array.isArray(obj[key])) {
-          obj[key] = [];
+        if (!Object.prototype.hasOwnProperty.call(obj, key)) {
+          setOwnProperty(obj, key, []);
         }
         // Omit blank unquoted cells in repeated columns so variable-length lists
         // (e.g. tag,tag,tag with `js,ts,`) produce ["js","ts"] instead of ["js","ts",null].
@@ -255,19 +307,19 @@ export function parseCsvToRecords(input: string): { ok: true; records: Record<st
           (obj[key] as unknown[]).push(coerceCsvCell(cell));
         }
       } else {
-        obj[key] = cell ? coerceCsvCell(cell) : null;
+        setOwnProperty(obj, key, cell ? coerceCsvCell(cell) : null);
       }
     }
     records.push(obj);
   }
 
-  return { ok: true, records };
+  return { ok: true, records, extraColumnRows };
 }
 
 function detectFormat(text: string, filename?: string): "json" | "csv" | null {
   const lower = filename?.trim().toLowerCase() ?? "";
   if (lower.endsWith(".json")) return "json";
-  if (lower.endsWith(".csv")) return "csv";
+  if (lower.endsWith(".csv") || lower.endsWith(".tsv")) return "csv";
 
   const trimmed = text.replace(/^\uFEFF/, "").trimStart();
   if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
@@ -280,26 +332,35 @@ function detectFormat(text: string, filename?: string): "json" | "csv" | null {
 }
 
 /**
- * Imports records from a JSON or CSV file's text contents and returns pretty-printed JSON.
+ * Imports records from a JSON, CSV, or TSV file's text contents and returns
+ * pretty-printed JSON bounded by record count and formatted byte size limits.
  */
-export function importRecordsFromText(text: string, filename?: string): ImportRecordsResult {
-  const sizeError = validateImportFileSize(new TextEncoder().encode(text).byteLength);
+export function importRecordsFromText(
+  text: string,
+  filename?: string,
+  rawByteLength?: number,
+): ImportRecordsResult {
+  const inputBytes = rawByteLength ?? new TextEncoder().encode(text).byteLength;
+  const sizeError = validateImportFileSize(inputBytes);
   if (sizeError) {
     return { ok: false, error: sizeError };
   }
+
   const format = detectFormat(text, filename);
   if (!format) {
     return {
       ok: false,
-      error: `Unsupported file "${filename}". Please import a .json or .csv file.`,
+      error: `Unsupported file "${filename}". Please import a .json, .csv, or .tsv file.`,
     };
   }
+
+  let records: unknown[];
+  const warnings: string[] = [];
 
   if (format === "json") {
     try {
       const cleaned = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
       const parsed: unknown = JSON.parse(cleaned);
-      let records: unknown[];
       if (Array.isArray(parsed)) {
         records = parsed;
       } else if (parsed !== null && typeof parsed === "object") {
@@ -310,30 +371,45 @@ export function importRecordsFromText(text: string, filename?: string): ImportRe
           error: "JSON file must contain an array [ ... ] or an object { ... }.",
         };
       }
-      return {
-        ok: true,
-        format: "json",
-        records,
-        formatted: JSON.stringify(records, null, 2),
-        count: records.length,
-      };
+      if (records.length > MAX_IMPORT_RECORDS) {
+        return {
+          ok: false,
+          error: `Too many JSON records (${records.length.toLocaleString()}). Maximum allowed is ${MAX_IMPORT_RECORDS.toLocaleString()}.`,
+        };
+      }
     } catch (err) {
       return {
         ok: false,
         error: `Invalid JSON: ${err instanceof Error ? err.message : String(err)}`,
       };
     }
+  } else {
+    const csv = parseCsvToRecords(text);
+    if (!csv.ok) {
+      return { ok: false, error: csv.error };
+    }
+    records = csv.records;
+    if (csv.extraColumnRows > 0) {
+      warnings.push(
+        `${csv.extraColumnRows} row(s) had extra columns beyond the header and were truncated.`,
+      );
+    }
   }
 
-  const csv = parseCsvToRecords(text);
-  if (!csv.ok) {
-    return { ok: false, error: csv.error };
+  const formatted = JSON.stringify(records, null, 2);
+  if (formatted.length > MAX_IMPORT_OUTPUT_BYTES) {
+    return {
+      ok: false,
+      error: `Formatted JSON is too large (${formatFileSize(formatted.length)}). Maximum output size is ${formatFileSize(MAX_IMPORT_OUTPUT_BYTES)}.`,
+    };
   }
+
   return {
     ok: true,
-    format: "csv",
-    records: csv.records,
-    formatted: JSON.stringify(csv.records, null, 2),
-    count: csv.records.length,
+    format,
+    records,
+    formatted,
+    count: records.length,
+    warnings,
   };
 }

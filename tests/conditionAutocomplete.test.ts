@@ -113,4 +113,19 @@ test("applyKeySuggestion inserts closing quote and colon when missing, and prese
   const res2 = applyKeySuggestion(text2, ctx2, { key: "age", kind: "field", detail: "number" });
   assert.equal(res2.nextText, '{\n  "age": 18\n}');
   assert.equal(res2.nextCursor, 8);
+
+  // Unclosed key before another key on the same line must NOT eat the next string's quote
+  const text3 = '{ "ag , "name": 1 }';
+  const ctx3 = detectJsonKeyContext(text3, 5)!;
+  assert.equal(ctx3.hasClosingQuote, false);
+  const res3 = applyKeySuggestion(text3, ctx3, { key: "age", kind: "field", detail: "number" });
+  assert.equal(res3.nextText, '{ "age":  , "name": 1 }');
+});
+
+test("$not inside a scalar field suggests field operators instead of root fields", () => {
+  const fields = extractRecordFieldSuggestions([{ age: 30, name: "Alice" }]);
+  const text = '{ "age": { "$not": { "" } } }';
+  const ctx = detectJsonKeyContext(text, text.indexOf('""') + 1)!;
+  const suggestions = getConditionKeySuggestions(ctx, fields);
+  assert.equal(suggestions[0].kind, "operator");
 });

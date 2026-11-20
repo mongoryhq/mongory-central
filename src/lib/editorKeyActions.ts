@@ -22,6 +22,17 @@ function isEscaped(text: string, index: number): boolean {
   return backslashes % 2 === 1;
 }
 
+function isInsideStringOnLine(text: string, cursor: number): boolean {
+  const lineStart = text.lastIndexOf("\n", cursor - 1) + 1;
+  let inString = false;
+  for (let i = lineStart; i < cursor; i++) {
+    if (text[i] === '"' && !isEscaped(text, i)) {
+      inString = !inString;
+    }
+  }
+  return inString;
+}
+
 function getLineIndent(text: string, cursor: number): string {
   const lineStart = text.lastIndexOf("\n", cursor - 1) + 1;
   let end = lineStart;
@@ -33,7 +44,7 @@ function getLineIndent(text: string, cursor: number): string {
 
 /**
  * Computes an IDE-style edit for auto-pairing (`{`, `[`, `"`), closing-char
- * skip-over, paired Backspace, Tab indentation, and Enter auto-expand/indent.
+ * skip-over, paired Backspace, block Tab indentation, and Enter auto-expand/indent.
  * Returns `null` when the browser's default key handling should proceed.
  */
 export function computeEditorKeyEdit(
@@ -66,14 +77,15 @@ export function computeEditorKeyEdit(
       if (isEscaped(text, selectionStart)) {
         return null;
       }
-      if (nextChar === '"') {
+      // Only skip over a closing quote when the caret is actually inside a string.
+      if (nextChar === '"' && isInsideStringOnLine(text, selectionStart)) {
         return {
           nextText: text,
           selectionStart: selectionStart + 1,
           selectionEnd: selectionStart + 1,
         };
       }
-      if (/[A-Za-z0-9_$]/.test(nextChar)) {
+      if (/[A-Za-z0-9_$]/.test(nextChar) || nextChar === '"') {
         return null;
       }
       return {
@@ -149,21 +161,69 @@ export function computeEditorKeyEdit(
     };
   }
 
-  // 5. Tab / Shift+Tab: 2-space indentation
+  // 5. Tab / Shift+Tab: 2-space indentation (block indent/outdent when text is selected)
   if (key === "Tab") {
-    if (shiftKey) {
-      const lineStart = text.lastIndexOf("\n", selectionStart - 1) + 1;
-      if (text.startsWith(INDENT_UNIT, lineStart)) {
-        const nextText = `${text.slice(0, lineStart)}${text.slice(lineStart + INDENT_UNIT.length)}`;
-        const delta = Math.min(INDENT_UNIT.length, selectionStart - lineStart);
+    if (hasSelection) {
+      const blockStart = text.lastIndexOf("\n", selectionStart - 1) + 1;
+      // If selection ends at column 0 of the next line, don't indent that trailing line.
+      const effectiveEnd =
+        selectionEnd > blockStart && text[selectionEnd - 1] === "\n" ? selectionEnd - 1 : selectionEnd;
+      const nextNl = text.indexOf("\n", effectiveEnd);
+      const blockEnd = nextNl === -1 ? text.length : nextNl;
+      const block = text.slice(blockStart, blockEnd);
+      const lines = block.split("\n");
+
+      if (shiftKey) {
+        let changed = false;
+        let firstLineRemoved = 0;
+        let totalRemoved = 0;
+        const outdented = lines.map((line, idx) => {
+          let remove = 0;
+          if (line.startsWith(INDENT_UNIT)) remove = INDENT_UNIT.length;
+          else if (line.startsWith(" ") || line.startsWith("\t")) remove = 1;
+          if (remove > 0) {
+            changed = true;
+            if (idx === 0) firstLineRemoved = remove;
+            totalRemoved += remove;
+            return line.slice(remove);
+          }
+          return line;
+        });
+        if (!changed) {
+          return null; // Release focus cleanly when nothing can be outdented.
+        }
         return {
-          nextText,
-          selectionStart: selectionStart - delta,
-          selectionEnd: Math.max(selectionStart - delta, selectionEnd - delta),
+          nextText: `${text.slice(0, blockStart)}${outdented.join("\n")}${text.slice(blockEnd)}`,
+          selectionStart: Math.max(blockStart, selectionStart - firstLineRemoved),
+          selectionEnd: Math.max(blockStart, selectionEnd - totalRemoved),
         };
       }
-      return { nextText: text, selectionStart, selectionEnd };
+
+      const indented = lines.map((line) => `${INDENT_UNIT}${line}`).join("\n");
+      return {
+        nextText: `${text.slice(0, blockStart)}${indented}${text.slice(blockEnd)}`,
+        selectionStart: selectionStart + INDENT_UNIT.length,
+        selectionEnd: selectionEnd + lines.length * INDENT_UNIT.length,
+      };
     }
+
+    if (shiftKey) {
+      const lineStart = text.lastIndexOf("\n", selectionStart - 1) + 1;
+      let remove = 0;
+      if (text.startsWith(INDENT_UNIT, lineStart)) remove = INDENT_UNIT.length;
+      else if (text[lineStart] === " " || text[lineStart] === "\t") remove = 1;
+      if (remove === 0) {
+        return null; // Avoid keyboard trap (WCAG 2.1.2) when nothing to outdent.
+      }
+      const nextText = `${text.slice(0, lineStart)}${text.slice(lineStart + remove)}`;
+      const delta = Math.min(remove, selectionStart - lineStart);
+      return {
+        nextText,
+        selectionStart: selectionStart - delta,
+        selectionEnd: selectionStart - delta,
+      };
+    }
+
     return {
       nextText: `${before}${INDENT_UNIT}${after}`,
       selectionStart: selectionStart + INDENT_UNIT.length,

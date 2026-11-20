@@ -222,13 +222,14 @@ export function detectJsonKeyContext(text: string, cursor: number): KeyCompletio
   }
 
   // Scan forward on the same line to find any existing closing quote and colon.
+  // Stop at structural JSON delimiters so an unclosed key never eats the next string's quote.
   let replaceEnd = pos;
   let hasClosingQuote = false;
   let afterQuote = pos;
   let fwdEscaped = false;
   for (let i = pos; i < text.length; i++) {
     const ch = text[i];
-    if (ch === "\n" || ch === "\r") {
+    if (ch === "\n" || ch === "\r" || ch === "," || ch === ":" || ch === "{" || ch === "}" || ch === "[" || ch === "]") {
       break;
     }
     if (fwdEscaped) {
@@ -279,7 +280,8 @@ export function getConditionKeySuggestions(
   const isFieldOperatorContext =
     ctx.nestingDepth >= 2 &&
     ctx.parentKey !== null &&
-    !CONTAINER_OPERATORS.has(ctx.parentKey);
+    (!CONTAINER_OPERATORS.has(ctx.parentKey) ||
+      (ctx.parentKey === "$not" && ctx.fieldPath.length > 0));
 
   const pathPrefix = ctx.fieldPath.length > 0 ? `${ctx.fieldPath.join(".")}.` : null;
 

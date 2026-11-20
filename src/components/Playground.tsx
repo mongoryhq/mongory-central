@@ -1,8 +1,12 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from "react";
 import { MongoryError, mongory, type ExplainNode } from "mongory-js";
 import { PRESETS } from "../data/presets.js";
 import { extractRecordFieldSuggestions } from "../lib/conditionAutocomplete.js";
-import { importRecordsFromText, validateImportFileSize } from "../lib/importRecords.js";
+import {
+  decodeImportBuffer,
+  importRecordsFromText,
+  validateImportFileSize,
+} from "../lib/importRecords.js";
 import {
   decodeShareState,
   encodeShareState,
@@ -68,14 +72,19 @@ export function Playground() {
   const recordsEditorRef = useRef<HTMLTextAreaElement>(null);
   const conditionEditorRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const importSeqRef = useRef(0);
   const [selectedIndex, setSelectedIndex] = useState(initialState.selectedIndex);
   const [scrollToRecordTick, setScrollToRecordTick] = useState(() => (initialState.selectedIndex > 0 ? 1 : 0));
   const [resultFilter, setResultFilter] = useState<"all" | "matched" | "missed">("all");
+  const [visibleLimit, setVisibleLimit] = useState(100);
   const [debugMode, setDebugMode] = useState<"visual" | "text">("visual");
-  const [copiedShare, setCopiedShare] = useState(false);
+  const [shareStatus, setShareStatus] = useState<"idle" | "copied" | "too-large" | "error">("idle");
   const [importError, setImportError] = useState<string | null>(null);
   const [importNotice, setImportNotice] = useState<string | null>(null);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
+
+  const deferredRecordsText = useDeferredValue(recordsText);
+  const deferredConditionText = useDeferredValue(conditionText);
 
   const activePreset = PRESETS.find((p) => p.id === presetId) ?? PRESETS[0];
 
@@ -98,7 +107,7 @@ export function Playground() {
     let parsedRecords: unknown[] | null = null;
     let recordsError: string | null = null;
     try {
-      const r: unknown = JSON.parse(recordsText);
+      const r: unknown = JSON.parse(deferredRecordsText);
       if (!Array.isArray(r)) {
         recordsError = "Records must be a JSON array [ ... ].";
       } else {
@@ -111,7 +120,7 @@ export function Playground() {
     let parsedCondition: Record<string, unknown> | null = null;
     let conditionError: string | null = null;
     try {
-      const c: unknown = JSON.parse(conditionText);
+      const c: unknown = JSON.parse(deferredConditionText);
       if (c === null || typeof c !== "object" || Array.isArray(c)) {
         conditionError = "Query condition must be a JSON object { ... }.";
       } else {
@@ -180,14 +189,17 @@ export function Playground() {
       selectedTraceText,
       selectedTraceTree,
     };
-  }, [recordsText, conditionText, selectedIndex]);
+  }, [deferredRecordsText, deferredConditionText, selectedIndex]);
 
   const effectiveIndex =
     evaluation.records && evaluation.records.length > 0
       ? Math.min(selectedIndex, evaluation.records.length - 1)
       : 0;
 
-  const recordRanges = useMemo(() => findJsonArrayElementRanges(recordsText), [recordsText]);
+  const recordRanges = useMemo(() => {
+    if (deferredRecordsText.length > 120_000) return [];
+    return findJsonArrayElementRanges(deferredRecordsText);
+  }, [deferredRecordsText]);
   const activeRecordRange = recordRanges[effectiveIndex] ?? null;
   const activeRangeRef = useRef<JsonLineRange | null>(activeRecordRange);
   activeRangeRef.current = activeRecordRange;
@@ -224,6 +236,7 @@ export function Playground() {
     setSelectedIndex(preset.defaultSelectedIndex);
     setScrollToRecordTick((t) => t + 1);
     setResultFilter("all");
+    setVisibleLimit(100);
     setImportError(null);
     setImportNotice(null);
     if (window.location.hash) {
@@ -237,7 +250,8 @@ export function Playground() {
     if (importNotice) setImportNotice(null);
   };
 
-  const handleImportFile = async (file: File) => {
+  const handleImportFile = async (file: File, extraDroppedFiles = 0) => {
+    const seq = ++importSeqRef.current;
     setImportError(null);
     setImportNotice(null);
     const sizeError = validateImportFileSize(file.size);
@@ -246,8 +260,11 @@ export function Playground() {
       return;
     }
     try {
-      const text = await file.text();
-      const result = importRecordsFromText(text, file.name);
+      const buffer = await file.arrayBuffer();
+      if (seq !== importSeqRef.current) return;
+      const decoded = decodeImportBuffer(buffer);
+      const result = importRecordsFromText(decoded.text, file.name, file.size);
+      if (seq !== importSeqRef.current) return;
       if (!result.ok) {
         setImportError(result.error);
         return;
@@ -255,10 +272,18 @@ export function Playground() {
       setRecordsText(result.formatted);
       setSelectedIndex(0);
       setResultFilter("all");
+      setVisibleLimit(100);
       setScrollToRecordTick((t) => t + 1);
       const unit = result.format === "csv" ? "rows" : "items";
-      setImportNotice(`Imported ${result.count} ${unit} from ${file.name}`);
+      const notes = [
+        `Imported ${result.count} ${unit} from ${file.name}`,
+        ...(extraDroppedFiles > 0 ? [`(imported first of ${extraDroppedFiles + 1} files)`] : []),
+        ...(decoded.warning ? [decoded.warning] : []),
+        ...result.warnings,
+      ];
+      setImportNotice(notes.join(" · "));
     } catch (err) {
+      if (seq !== importSeqRef.current) return;
       setImportError(err instanceof Error ? err.message : "Failed to read file.");
     }
   };
@@ -286,10 +311,10 @@ export function Playground() {
   };
 
   const handleRecordsDrop = (e: DragEvent<HTMLDivElement>) => {
+    setIsDraggingFile(false);
     if (!e.dataTransfer.files || e.dataTransfer.files.length === 0) return;
     e.preventDefault();
-    setIsDraggingFile(false);
-    void handleImportFile(e.dataTransfer.files[0]);
+    void handleImportFile(e.dataTransfer.files[0], e.dataTransfer.files.length - 1);
   };
 
   const handleShare = async () => {
@@ -299,14 +324,19 @@ export function Playground() {
       conditionText,
       selectedIndex: effectiveIndex,
     });
-    window.history.replaceState(null, "", hash);
+    if (hash.length > 32_000) {
+      setShareStatus("too-large");
+      window.setTimeout(() => setShareStatus("idle"), 2600);
+      return;
+    }
     try {
+      window.history.replaceState(null, "", hash);
       await navigator.clipboard.writeText(window.location.href);
-      setCopiedShare(true);
-      window.setTimeout(() => setCopiedShare(false), 1800);
+      setShareStatus("copied");
+      window.setTimeout(() => setShareStatus("idle"), 1800);
     } catch {
-      setCopiedShare(true);
-      window.setTimeout(() => setCopiedShare(false), 1800);
+      setShareStatus("error");
+      window.setTimeout(() => setShareStatus("idle"), 2400);
     }
   };
 
@@ -392,7 +422,13 @@ export function Playground() {
             Reset
           </button>
           <button type="button" className="btn btn-primary btn-sm" onClick={() => void handleShare()}>
-            {copiedShare ? "Copied URL ✓" : "Share URL"}
+            {shareStatus === "copied"
+              ? "Copied URL ✓"
+              : shareStatus === "too-large"
+                ? "Too large to share"
+                : shareStatus === "error"
+                  ? "Copy failed"
+                  : "Share URL"}
           </button>
         </div>
       </div>
@@ -418,9 +454,10 @@ export function Playground() {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".json,.csv,application/json,text/csv"
+                tabIndex={-1}
+                accept=".json,.csv,.tsv,application/json,text/csv,text/tab-separated-values"
                 className="sr-only"
-                aria-label="Import JSON or CSV records file"
+                aria-label="Import JSON, CSV, or TSV records file"
                 onChange={handleFileInputChange}
               />
               <div className="import-btn-wrap">
@@ -434,16 +471,16 @@ export function Playground() {
                   <span>Import</span>
                 </button>
                 <div id="import-rules-tooltip" className="import-tooltip" role="tooltip">
-                  <div className="import-tooltip-title">Import Rules (.json &amp; .csv · max 2 MB)</div>
+                  <div className="import-tooltip-title">Import Rules (.json / .csv / .tsv · max 2 MB / 5,000 rows)</div>
                   <ul className="import-tooltip-list">
                     <li>
                       <strong>JSON</strong>: Array <code>[...]</code> or single object <code>{"{...}"}</code>.
                     </li>
                     <li>
-                      <strong>CSV headers</strong>: Duplicate columns (e.g. <code>tag,tag</code>) merge into an array; blank cells are omitted.
+                      <strong>CSV / TSV headers</strong>: Duplicate columns (e.g. <code>tag,tag</code>) merge into an array; blank cells are omitted.
                     </li>
                     <li>
-                      <strong>Excel &amp; types</strong>: Supports BOM, <code>sep=;</code>, <code>;</code>/<code>\t</code>, and unquoted numbers / <code>TRUE</code> / <code>FALSE</code> / <code>null</code>. Quoted values (<code>&quot;&quot;</code>, <code>&quot;42&quot;</code>) &amp; leading zeros stay strings.
+                      <strong>Excel &amp; types</strong>: Supports UTF-8/UTF-16 BOM, <code>sep=;</code>, <code>;</code>/<code>\t</code>, and unquoted numbers / <code>TRUE</code> / <code>FALSE</code> / <code>null</code>. Quoted values, leading zeros &amp; long IDs (&gt;2<sup>53</sup>) stay strings.
                     </li>
                     <li>
                       <strong>Local only</strong>: Parsed 100% in-browser; files never leave your device.
@@ -464,8 +501,8 @@ export function Playground() {
           <JsonEditor
             textareaRef={recordsEditorRef}
             ariaLabel="Records JSON editor"
-            hasError={Boolean(evaluation.recordsError || importError)}
-            hint="Edit, paste JSON, or drop / import a .json or .csv file"
+            hasError={Boolean(evaluation.recordsError)}
+            hint="Edit, paste JSON, or drop / import a .json, .csv, or .tsv file"
             highlightRange={activeRecordRange}
             value={recordsText}
             onChange={handleRecordsChange}
@@ -535,7 +572,10 @@ export function Playground() {
                   key={f}
                   type="button"
                   className={resultFilter === f ? "is-active" : ""}
-                  onClick={() => setResultFilter(f)}
+                  onClick={() => {
+                    setResultFilter(f);
+                    setVisibleLimit(100);
+                  }}
                 >
                   {f}
                 </button>
@@ -553,30 +593,41 @@ export function Playground() {
                 No records in "{resultFilter}" filter.
               </div>
             ) : (
-              visibleIndices.map((idx) => {
-                const record = evaluation.records![idx];
-                const ok = evaluation.results[idx];
-                const isSelected = idx === effectiveIndex;
-                return (
+              <>
+                {visibleIndices.slice(0, visibleLimit).map((idx) => {
+                  const record = evaluation.records![idx];
+                  const ok = evaluation.results[idx];
+                  const isSelected = idx === effectiveIndex;
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      role="option"
+                      aria-selected={isSelected}
+                      className={`result-row ${ok ? "is-match" : "is-miss"} ${isSelected ? "is-selected" : ""}`}
+                      onClick={() => selectRecord(idx)}
+                    >
+                      <div className="result-row-top">
+                        <span className="result-index">#{idx}</span>
+                        <span className={`result-status ${ok ? "status-pass" : "status-fail"}`}>
+                          {ok ? "MATCH" : "MISS"}
+                        </span>
+                        {isSelected && <span className="inspecting-tag">Trace Inspecting</span>}
+                      </div>
+                      <code className="result-preview">{formatRecordPreview(record)}</code>
+                    </button>
+                  );
+                })}
+                {visibleIndices.length > visibleLimit && (
                   <button
-                    key={idx}
                     type="button"
-                    role="option"
-                    aria-selected={isSelected}
-                    className={`result-row ${ok ? "is-match" : "is-miss"} ${isSelected ? "is-selected" : ""}`}
-                    onClick={() => selectRecord(idx)}
+                    className="results-load-more"
+                    onClick={() => setVisibleLimit((n) => n + 100)}
                   >
-                    <div className="result-row-top">
-                      <span className="result-index">#{idx}</span>
-                      <span className={`result-status ${ok ? "status-pass" : "status-fail"}`}>
-                        {ok ? "MATCH" : "MISS"}
-                      </span>
-                      {isSelected && <span className="inspecting-tag">Trace Inspecting</span>}
-                    </div>
-                    <code className="result-preview">{formatRecordPreview(record)}</code>
+                    Show 100 more ({visibleIndices.length - visibleLimit} remaining)
                   </button>
-                );
-              })
+                )}
+              </>
             )}
           </div>
           <div className="results-footer">

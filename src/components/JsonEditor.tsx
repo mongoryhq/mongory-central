@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useId,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -17,6 +18,8 @@ import {
 } from "../lib/conditionAutocomplete.js";
 import { computeEditorKeyEdit } from "../lib/editorKeyActions.js";
 import { HighlightedCode } from "./CodeBlock.js";
+
+const HIGHLIGHT_CHAR_LIMIT = 120_000;
 
 interface JsonEditorProps {
   value: string;
@@ -43,6 +46,36 @@ function getLineCol(text: string, index: number): { line: number; col: number } 
 }
 
 /**
+ * Applies a minimal diff via `document.execCommand("insertText")` when supported
+ * so the browser preserves the native Ctrl+Z / Cmd+Z undo stack.
+ */
+function tryInsertViaExecCommand(
+  ta: HTMLTextAreaElement,
+  prevText: string,
+  nextText: string,
+): boolean {
+  if (typeof document === "undefined" || typeof document.execCommand !== "function") {
+    return false;
+  }
+  let prefix = 0;
+  const minLen = Math.min(prevText.length, nextText.length);
+  while (prefix < minLen && prevText[prefix] === nextText[prefix]) {
+    prefix++;
+  }
+  let prevEnd = prevText.length;
+  let nextEnd = nextText.length;
+  while (prevEnd > prefix && nextEnd > prefix && prevText[prevEnd - 1] === nextText[nextEnd - 1]) {
+    prevEnd--;
+    nextEnd--;
+  }
+  const replacement = nextText.slice(prefix, nextEnd);
+  ta.focus();
+  ta.setSelectionRange(prefix, prevEnd);
+  const ok = document.execCommand("insertText", false, replacement);
+  return ok && ta.value === nextText;
+}
+
+/**
  * Editable JSON textarea synchronized with a line-number gutter and
  * syntax-highlighted `<pre>` underlay. Keeps native cursor, selection, undo,
  * and screen-reader semantics while clearly signaling live editability.
@@ -62,11 +95,16 @@ export function JsonEditor({
   const preRef = useRef<HTMLPreElement>(null);
   const gutterRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLUListElement>(null);
+  const pendingSelectionRef = useRef<{ start: number; end: number } | null>(null);
+  const tabEscapedRef = useRef(false);
+  const menuId = useId();
 
   const [acOpen, setAcOpen] = useState(false);
   const [cursor, setCursor] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
   const [scrollPos, setScrollPos] = useState({ top: 0, left: 0 });
+
+  const skipHighlight = value.length > HIGHLIGHT_CHAR_LIMIT;
 
   const lineNumbers = useMemo(() => {
     const count = value.split("\n").length;
@@ -119,7 +157,13 @@ export function JsonEditor({
 
   useLayoutEffect(() => {
     syncScroll();
-  }, [value, syncScroll]);
+    const pending = pendingSelectionRef.current;
+    const ta = textareaRef.current;
+    if (pending && ta && document.activeElement === ta) {
+      pendingSelectionRef.current = null;
+      ta.setSelectionRange(pending.start, pending.end);
+    }
+  }, [value, syncScroll, textareaRef]);
 
   useEffect(() => {
     const ta = textareaRef.current;
@@ -129,25 +173,45 @@ export function JsonEditor({
     return () => observer.disconnect();
   }, [syncScroll, textareaRef]);
 
+  const applyProgrammaticEdit = useCallback(
+    (nextText: string, selStart: number, selEnd: number) => {
+      const ta = textareaRef.current;
+      pendingSelectionRef.current = { start: selStart, end: selEnd };
+      if (nextText === value) {
+        if (ta) {
+          pendingSelectionRef.current = null;
+          ta.setSelectionRange(selStart, selEnd);
+        }
+        return;
+      }
+      if (ta && tryInsertViaExecCommand(ta, value, nextText)) {
+        // React's onChange already fired via execCommand; restore exact caret synchronously.
+        ta.setSelectionRange(selStart, selEnd);
+        pendingSelectionRef.current = null;
+        return;
+      }
+      onChange(nextText);
+    },
+    [value, onChange, textareaRef],
+  );
+
   const acceptSuggestion = useCallback(
     (item: KeySuggestion) => {
       if (!keyContext) return;
       const { nextText, nextCursor } = applyKeySuggestion(value, keyContext, item);
-      onChange(nextText);
       setCursor(nextCursor);
       setAcOpen(false);
-      requestAnimationFrame(() => {
-        const ta = textareaRef.current;
-        if (ta) {
-          ta.focus();
-          ta.setSelectionRange(nextCursor, nextCursor);
-        }
-      });
+      applyProgrammaticEdit(nextText, nextCursor, nextCursor);
     },
-    [keyContext, value, onChange, textareaRef],
+    [keyContext, value, applyProgrammaticEdit],
   );
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    // Never interfere with CJK / dead-key IME composition.
+    if (e.nativeEvent.isComposing || e.keyCode === 229) {
+      return;
+    }
+
     if (autocompleteFields && e.ctrlKey && e.code === "Space") {
       e.preventDefault();
       const pos = e.currentTarget.selectionStart;
@@ -180,6 +244,17 @@ export function JsonEditor({
       }
     }
 
+    // Escape releases Tab focus trap (CodeMirror pattern, WCAG 2.1.2).
+    if (e.key === "Escape") {
+      tabEscapedRef.current = true;
+      return;
+    }
+    if (e.key === "Tab" && tabEscapedRef.current) {
+      tabEscapedRef.current = false;
+      return;
+    }
+    tabEscapedRef.current = false;
+
     if (e.metaKey || e.ctrlKey || e.altKey) {
       return;
     }
@@ -194,9 +269,6 @@ export function JsonEditor({
     if (!edit) return;
 
     e.preventDefault();
-    if (edit.nextText !== value) {
-      onChange(edit.nextText);
-    }
     if (autocompleteFields) {
       setCursor(edit.selectionStart);
       if (edit.openAutocomplete) {
@@ -205,12 +277,7 @@ export function JsonEditor({
         setAcOpen(false);
       }
     }
-    requestAnimationFrame(() => {
-      const ta = textareaRef.current;
-      if (ta) {
-        ta.setSelectionRange(edit.selectionStart, edit.selectionEnd);
-      }
-    });
+    applyProgrammaticEdit(edit.nextText, edit.selectionStart, edit.selectionEnd);
   };
 
   const menuStyle = useMemo(() => {
@@ -222,11 +289,15 @@ export function JsonEditor({
     const lineBottom = 10 + (line + 1) * 20 - scrollPos.top;
     const menuHeight = Math.min(suggestions.length * 28 + 10, 196);
     const flipUp = lineBottom + menuHeight > stageHeight - 6 && lineBottom - 20 > menuHeight;
-    const top = flipUp ? Math.max(6, lineBottom - 20 - menuHeight - 4) : Math.min(stageHeight - 40, Math.max(6, lineBottom + 2));
+    const top = flipUp
+      ? Math.max(6, lineBottom - 20 - menuHeight - 4)
+      : Math.min(stageHeight - 40, Math.max(6, lineBottom + 2));
     const menuWidth = 256;
     const left = Math.max(8, Math.min(12 + col * 8.1 - scrollPos.left, Math.max(8, stageWidth - menuWidth - 8)));
     return { top, left };
   }, [showMenu, keyContext, textareaRef, value, scrollPos, suggestions.length]);
+
+  const activeOptionId = showMenu ? `${menuId}-opt-${safeActiveIndex}` : undefined;
 
   return (
     <div className={`json-editor-wrap ${hasError ? "has-error" : ""}`}>
@@ -260,7 +331,7 @@ export function JsonEditor({
                 />
               )}
               <span className="json-editor-code">
-                <HighlightedCode code={value} lang="json" />
+                {skipHighlight ? value : <HighlightedCode code={value} lang="json" />}
                 {value.endsWith("\n") || value.length === 0 ? " " : null}
               </span>
             </div>
@@ -269,8 +340,11 @@ export function JsonEditor({
             ref={textareaRef}
             className="json-editor-input"
             aria-label={ariaLabel}
+            role={autocompleteFields ? "combobox" : undefined}
             aria-autocomplete={autocompleteFields ? "list" : undefined}
+            aria-controls={autocompleteFields ? menuId : undefined}
             aria-expanded={autocompleteFields ? showMenu : undefined}
+            aria-activedescendant={activeOptionId}
             spellCheck={false}
             autoCapitalize="off"
             autoCorrect="off"
@@ -286,6 +360,7 @@ export function JsonEditor({
             }}
             onKeyDown={handleKeyDown}
             onClick={(e) => {
+              tabEscapedRef.current = false;
               if (!autocompleteFields) return;
               const pos = e.currentTarget.selectionStart;
               setCursor(pos);
@@ -294,6 +369,7 @@ export function JsonEditor({
               }
             }}
             onBlur={() => {
+              tabEscapedRef.current = false;
               if (acOpen) setAcOpen(false);
             }}
             onScroll={syncScroll}
@@ -301,6 +377,7 @@ export function JsonEditor({
           {showMenu && menuStyle && (
             <ul
               ref={menuRef}
+              id={menuId}
               className="ac-menu"
               style={menuStyle}
               role="listbox"
@@ -309,6 +386,7 @@ export function JsonEditor({
               {suggestions.map((item, idx) => (
                 <li
                   key={`${item.kind}:${item.key}`}
+                  id={`${menuId}-opt-${idx}`}
                   role="option"
                   aria-selected={idx === safeActiveIndex}
                   className={`ac-item ${idx === safeActiveIndex ? "is-active" : ""}`}
@@ -330,7 +408,9 @@ export function JsonEditor({
         </div>
       </div>
       <div className="json-editor-footer">
-        <span className="editor-footer-hint">{hint}</span>
+        <span className="editor-footer-hint">
+          {skipHighlight ? "Large file: syntax highlighting paused for speed" : hint}
+        </span>
         <span className="editor-footer-meta">{lineNumbers.length} lines · live</span>
       </div>
     </div>

@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   MAX_IMPORT_FILE_BYTES,
+  MAX_IMPORT_RECORDS,
+  decodeImportBuffer,
   importRecordsFromText,
   parseCsvToRecords,
   validateImportFileSize,
@@ -124,4 +126,52 @@ test("validateImportFileSize and importRecordsFromText enforce the 2 MB file siz
   if (!res.ok) {
     assert.ok(res.error.includes("too large"));
   }
+});
+
+test("CSV preserves unsafe long integers, supports __proto__ headers, .tsv, UTF-16LE BOM, and warns on extra columns", () => {
+  // Long integers (> 2^53 - 1) stay strings; __proto__ stays an own property
+  const csv = "__proto__,order_id,safe_id\nfoo,12345678901234567890,9007199254740991\n";
+  const res = importRecordsFromText(csv, "orders.csv");
+  assert.equal(res.ok, true);
+  if (res.ok) {
+    const rec = res.records[0] as Record<string, unknown>;
+    assert.equal(Object.prototype.hasOwnProperty.call(rec, "__proto__"), true);
+    assert.equal(rec["__proto__"], "foo");
+    assert.equal(rec.order_id, "12345678901234567890");
+    assert.equal(rec.safe_id, 9007199254740991);
+  }
+
+  // Extra columns beyond header produce warning
+  const extraRes = importRecordsFromText("a,b\n1,2,3\n4,5\n", "extra.csv");
+  assert.equal(extraRes.ok, true);
+  if (extraRes.ok) {
+    assert.equal(extraRes.warnings.length, 1);
+    assert.ok(extraRes.warnings[0].includes("1 row(s)"));
+  }
+
+  // .tsv extension accepted
+  const tsvRes = importRecordsFromText("name\tscore\nAnn\t99\n", "scores.tsv");
+  assert.equal(tsvRes.ok, true);
+  if (tsvRes.ok) {
+    assert.deepEqual(tsvRes.records, [{ name: "Ann", score: 99 }]);
+  }
+
+  // Record count cap enforced
+  const tooManyRows = `a\n${"1\n".repeat(MAX_IMPORT_RECORDS + 1)}`;
+  const capRes = importRecordsFromText(tooManyRows, "many.csv");
+  assert.equal(capRes.ok, false);
+
+  // UTF-16LE BOM decoding
+  const str = "a,b\r\n1,2";
+  const buf = new ArrayBuffer(2 + str.length * 2);
+  const view = new Uint8Array(buf);
+  view[0] = 0xff;
+  view[1] = 0xfe;
+  for (let i = 0; i < str.length; i++) {
+    view[2 + i * 2] = str.charCodeAt(i) & 0xff;
+    view[2 + i * 2 + 1] = str.charCodeAt(i) >> 8;
+  }
+  const decoded = decodeImportBuffer(buf);
+  assert.equal(decoded.text.replace(/^\uFEFF/, ""), "a,b\r\n1,2");
+  assert.equal(decoded.warning, undefined);
 });
