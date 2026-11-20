@@ -26,13 +26,14 @@ function coerceCsvCell(cell: CsvCell): unknown {
   if (trimmed === "") {
     return null;
   }
-  if (trimmed === "true") {
+  const lower = trimmed.toLowerCase();
+  if (lower === "true") {
     return true;
   }
-  if (trimmed === "false") {
+  if (lower === "false") {
     return false;
   }
-  if (trimmed === "null") {
+  if (lower === "null") {
     return null;
   }
   if (JSON_NUMBER_RE.test(trimmed)) {
@@ -44,17 +45,59 @@ function coerceCsvCell(cell: CsvCell): unknown {
   return trimmed;
 }
 
+function detectDelimiter(text: string): { delimiter: string; body: string } {
+  // Excel sometimes prepends a `sep=,` or `sep=;` directive on line 1.
+  const firstNewline = text.search(/\r\n|\n|\r/);
+  const firstLine = firstNewline === -1 ? text : text.slice(0, firstNewline);
+  const sepMatch = /^sep=(.)$/i.exec(firstLine.trim());
+  if (sepMatch && firstNewline !== -1) {
+    const advance = text[firstNewline] === "\r" && text[firstNewline + 1] === "\n" ? 2 : 1;
+    return { delimiter: sepMatch[1], body: text.slice(firstNewline + advance) };
+  }
+
+  // Auto-detect `;` (European Excel) or `\t` (TSV) when header has no unquoted commas.
+  let inQuotes = false;
+  let commas = 0;
+  let semicolons = 0;
+  let tabs = 0;
+  for (let i = 0; i < firstLine.length; i++) {
+    const ch = firstLine[i];
+    if (ch === '"') {
+      if (inQuotes && firstLine[i + 1] === '"') {
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+    if (!inQuotes) {
+      if (ch === ",") commas++;
+      else if (ch === ";") semicolons++;
+      else if (ch === "\t") tabs++;
+    }
+  }
+  if (commas === 0 && semicolons > 0) {
+    return { delimiter: ";", body: text };
+  }
+  if (commas === 0 && semicolons === 0 && tabs > 0) {
+    return { delimiter: "\t", body: text };
+  }
+  return { delimiter: ",", body: text };
+}
+
 /**
- * Parses RFC 4180 CSV text into rows of cells, preserving whether each cell
- * was quoted so callers can distinguish `"42"` from `42` and `""` from empty.
+ * Parses RFC 4180 / Excel-exported CSV text into rows of cells, preserving whether
+ * each cell was quoted so callers can distinguish `"42"` from `42` and `""` from empty.
  */
 function parseCsvRows(input: string): { ok: true; rows: CsvCell[][] } | { ok: false; error: string } {
-  const text = input.charCodeAt(0) === 0xfeff ? input.slice(1) : input;
+  const withoutBom = input.charCodeAt(0) === 0xfeff ? input.slice(1) : input;
+  const { delimiter, body: text } = detectDelimiter(withoutBom);
   const rows: CsvCell[][] = [];
   let row: CsvCell[] = [];
   let field = "";
   let inQuotes = false;
   let quoted = false;
+  let afterClosingQuote = false;
   let fieldStarted = false;
 
   for (let i = 0; i < text.length; i++) {
@@ -67,11 +110,24 @@ function parseCsvRows(input: string): { ok: true; rows: CsvCell[][] } | { ok: fa
           i++;
         } else {
           inQuotes = false;
+          afterClosingQuote = true;
         }
       } else {
         field += ch;
       }
       continue;
+    }
+
+    if (!fieldStarted && (ch === " " || (ch === "\t" && delimiter !== "\t"))) {
+      // Allow optional whitespace before an opening quote (e.g. `, "value"`).
+      let lookahead = i + 1;
+      while (lookahead < text.length && (text[lookahead] === " " || (text[lookahead] === "\t" && delimiter !== "\t"))) {
+        lookahead++;
+      }
+      if (text[lookahead] === '"') {
+        i = lookahead - 1;
+        continue;
+      }
     }
 
     if (!fieldStarted && ch === '"') {
@@ -81,10 +137,15 @@ function parseCsvRows(input: string): { ok: true; rows: CsvCell[][] } | { ok: fa
       continue;
     }
 
-    if (ch === ",") {
+    if (afterClosingQuote && (ch === " " || (ch === "\t" && delimiter !== "\t"))) {
+      continue;
+    }
+
+    if (ch === delimiter) {
       row.push({ value: field, quoted });
       field = "";
       quoted = false;
+      afterClosingQuote = false;
       fieldStarted = false;
       continue;
     }
@@ -98,10 +159,12 @@ function parseCsvRows(input: string): { ok: true; rows: CsvCell[][] } | { ok: fa
       row = [];
       field = "";
       quoted = false;
+      afterClosingQuote = false;
       fieldStarted = false;
       continue;
     }
 
+    afterClosingQuote = false;
     field += ch;
     fieldStarted = true;
   }

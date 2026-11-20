@@ -21,6 +21,43 @@ test("parseCsvToRecords converts header rows and coerces unquoted scalars while 
   ]);
 });
 
+test("parseCsvToRecords supports Excel exports (TRUE/FALSE, empty \"\", BOM, sep=;, semicolon/tab delimiters)", () => {
+  const excelComma = [
+    '\uFEFFname,active,verified,note,empty_quoted,empty_raw',
+    'Alice,TRUE,False,"TRUE","",',
+    'Bob,FALSE,True, "", ,""',
+  ].join("\r\n") + "\r\n";
+
+  const r1 = parseCsvToRecords(excelComma);
+  assert.equal(r1.ok, true);
+  if (r1.ok) {
+    assert.deepEqual(r1.records, [
+      { name: "Alice", active: true, verified: false, note: "TRUE", empty_quoted: "", empty_raw: null },
+      { name: "Bob", active: false, verified: true, note: "", empty_quoted: null, empty_raw: "" },
+    ]);
+  }
+
+  const excelSepDirective = '\uFEFFsep=;\r\nname;price;active\r\n"Book; Vol 1";19.99;TRUE\r\nPen;2;FALSE\r\n';
+  const r2 = parseCsvToRecords(excelSepDirective);
+  assert.equal(r2.ok, true);
+  if (r2.ok) {
+    assert.deepEqual(r2.records, [
+      { name: "Book; Vol 1", price: 19.99, active: true },
+      { name: "Pen", price: 2, active: false },
+    ]);
+  }
+
+  const excelSemicolonAuto = 'name;count;ok\r\nAlpha;10;TRUE\r\nBeta;0;FALSE\r\n';
+  const r3 = parseCsvToRecords(excelSemicolonAuto);
+  assert.equal(r3.ok, true);
+  if (r3.ok) {
+    assert.deepEqual(r3.records, [
+      { name: "Alpha", count: 10, ok: true },
+      { name: "Beta", count: 0, ok: false },
+    ]);
+  }
+});
+
 test("parseCsvToRecords deduplicates repeated headers and fills missing trailing cells with null", () => {
   const csv = "tag,tag,\na,b\nx\n";
   const res = parseCsvToRecords(csv);
