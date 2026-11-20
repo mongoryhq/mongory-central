@@ -1,3 +1,22 @@
+export const MAX_IMPORT_FILE_BYTES = 2 * 1024 * 1024; // 2 MB
+
+export function formatFileSize(bytes: number): string {
+  if (bytes >= 1024 * 1024) {
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  }
+  if (bytes >= 1024) {
+    return `${(bytes / 1024).toFixed(1)} KB`;
+  }
+  return `${bytes} B`;
+}
+
+export function validateImportFileSize(bytes: number, maxBytes = MAX_IMPORT_FILE_BYTES): string | null {
+  if (bytes > maxBytes) {
+    return `File is too large (${formatFileSize(bytes)}). Maximum allowed size is ${formatFileSize(maxBytes)}.`;
+  }
+  return null;
+}
+
 export type ImportRecordsResult =
   | {
       ok: true;
@@ -264,6 +283,10 @@ function detectFormat(text: string, filename?: string): "json" | "csv" | null {
  * Imports records from a JSON or CSV file's text contents and returns pretty-printed JSON.
  */
 export function importRecordsFromText(text: string, filename?: string): ImportRecordsResult {
+  const sizeError = validateImportFileSize(new TextEncoder().encode(text).byteLength);
+  if (sizeError) {
+    return { ok: false, error: sizeError };
+  }
   const format = detectFormat(text, filename);
   if (!format) {
     return {

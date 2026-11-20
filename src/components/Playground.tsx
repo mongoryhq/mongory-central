@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent 
 import { MongoryError, mongory, type ExplainNode } from "mongory-js";
 import { PRESETS } from "../data/presets.js";
 import { extractRecordFieldSuggestions } from "../lib/conditionAutocomplete.js";
-import { importRecordsFromText } from "../lib/importRecords.js";
+import { importRecordsFromText, validateImportFileSize } from "../lib/importRecords.js";
 import {
   decodeShareState,
   encodeShareState,
@@ -240,6 +240,11 @@ export function Playground() {
   const handleImportFile = async (file: File) => {
     setImportError(null);
     setImportNotice(null);
+    const sizeError = validateImportFileSize(file.size);
+    if (sizeError) {
+      setImportError(sizeError);
+      return;
+    }
     try {
       const text = await file.text();
       const result = importRecordsFromText(text, file.name);
@@ -429,7 +434,7 @@ export function Playground() {
                   <span>Import</span>
                 </button>
                 <div id="import-rules-tooltip" className="import-tooltip" role="tooltip">
-                  <div className="import-tooltip-title">Import Rules (.json &amp; .csv only)</div>
+                  <div className="import-tooltip-title">Import Rules (.json &amp; .csv · max 2 MB)</div>
                   <ul className="import-tooltip-list">
                     <li>
                       <strong>JSON</strong>: Array <code>[...]</code> or single object <code>{"{...}"}</code>.

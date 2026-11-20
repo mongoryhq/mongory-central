@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { importRecordsFromText, parseCsvToRecords } from "../src/lib/importRecords.js";
+import {
+  MAX_IMPORT_FILE_BYTES,
+  importRecordsFromText,
+  parseCsvToRecords,
+  validateImportFileSize,
+} from "../src/lib/importRecords.js";
 
 test("parseCsvToRecords converts header rows and coerces unquoted scalars while preserving quoted strings", () => {
   const csv = [
@@ -106,4 +111,17 @@ test("importRecordsFromText handles JSON arrays, single JSON objects, CSV files,
   assert.equal(importRecordsFromText("123", "scalar.json").ok, false);
   assert.equal(importRecordsFromText("{bad", "broken.json").ok, false);
   assert.equal(importRecordsFromText("hello", "notes.txt").ok, false);
+});
+
+test("validateImportFileSize and importRecordsFromText enforce the 2 MB file size limit", () => {
+  assert.equal(validateImportFileSize(MAX_IMPORT_FILE_BYTES), null);
+  const err = validateImportFileSize(MAX_IMPORT_FILE_BYTES + 1);
+  assert.ok(err && err.includes("2.00 MB"));
+
+  const oversized = `a\n${"x".repeat(MAX_IMPORT_FILE_BYTES)}`;
+  const res = importRecordsFromText(oversized, "huge.csv");
+  assert.equal(res.ok, false);
+  if (!res.ok) {
+    assert.ok(res.error.includes("too large"));
+  }
 });
