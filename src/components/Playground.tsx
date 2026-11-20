@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from "react";
 import { MongoryError, mongory, type ExplainNode } from "mongory-js";
 import { PRESETS } from "../data/presets.js";
+import { importRecordsFromText } from "../lib/importRecords.js";
 import {
   decodeShareState,
   encodeShareState,
@@ -19,6 +20,20 @@ function EditIcon() {
         d="M11.7 1.8a1.5 1.5 0 0 1 2.1 2.1L5.4 12.3l-3.1.8.8-3.1 8.6-8.2Z"
         stroke="currentColor"
         strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function UploadIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path
+        d="M8 10.5V2.8m0 0L4.8 6M8 2.8 11.2 6M2.5 10.8v1.7A1.5 1.5 0 0 0 4 14h8a1.5 1.5 0 0 0 1.5-1.5v-1.7"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
         strokeLinejoin="round"
       />
     </svg>
@@ -51,11 +66,15 @@ export function Playground() {
   const [conditionText, setConditionText] = useState(initialState.conditionText);
   const recordsEditorRef = useRef<HTMLTextAreaElement>(null);
   const conditionEditorRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedIndex, setSelectedIndex] = useState(initialState.selectedIndex);
   const [scrollToRecordTick, setScrollToRecordTick] = useState(() => (initialState.selectedIndex > 0 ? 1 : 0));
   const [resultFilter, setResultFilter] = useState<"all" | "matched" | "missed">("all");
   const [debugMode, setDebugMode] = useState<"visual" | "text">("visual");
   const [copiedShare, setCopiedShare] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importNotice, setImportNotice] = useState<string | null>(null);
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
 
   const activePreset = PRESETS.find((p) => p.id === presetId) ?? PRESETS[0];
 
@@ -204,9 +223,67 @@ export function Playground() {
     setSelectedIndex(preset.defaultSelectedIndex);
     setScrollToRecordTick((t) => t + 1);
     setResultFilter("all");
+    setImportError(null);
+    setImportNotice(null);
     if (window.location.hash) {
       window.history.replaceState(null, "", "#playground");
     }
+  };
+
+  const handleRecordsChange = (next: string) => {
+    setRecordsText(next);
+    if (importError) setImportError(null);
+    if (importNotice) setImportNotice(null);
+  };
+
+  const handleImportFile = async (file: File) => {
+    setImportError(null);
+    setImportNotice(null);
+    try {
+      const text = await file.text();
+      const result = importRecordsFromText(text, file.name);
+      if (!result.ok) {
+        setImportError(result.error);
+        return;
+      }
+      setRecordsText(result.formatted);
+      setSelectedIndex(0);
+      setResultFilter("all");
+      setScrollToRecordTick((t) => t + 1);
+      const unit = result.format === "csv" ? "rows" : "items";
+      setImportNotice(`Imported ${result.count} ${unit} from ${file.name}`);
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : "Failed to read file.");
+    }
+  };
+
+  const handleFileInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (file) {
+      void handleImportFile(file);
+    }
+  };
+
+  const handleRecordsDragOver = (e: DragEvent<HTMLDivElement>) => {
+    if (e.dataTransfer.types.includes("Files")) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "copy";
+      if (!isDraggingFile) setIsDraggingFile(true);
+    }
+  };
+
+  const handleRecordsDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+      setIsDraggingFile(false);
+    }
+  };
+
+  const handleRecordsDrop = (e: DragEvent<HTMLDivElement>) => {
+    if (!e.dataTransfer.files || e.dataTransfer.files.length === 0) return;
+    e.preventDefault();
+    setIsDraggingFile(false);
+    void handleImportFile(e.dataTransfer.files[0]);
   };
 
   const handleShare = async () => {
@@ -313,7 +390,12 @@ export function Playground() {
 
       <div className="three-pane-grid">
         {/* Column 1: Records Editor */}
-        <div className="pane pane-editor">
+        <div
+          className={`pane pane-editor ${isDraggingFile ? "is-dragover" : ""}`}
+          onDragOver={handleRecordsDragOver}
+          onDragLeave={handleRecordsDragLeave}
+          onDrop={handleRecordsDrop}
+        >
           <div className="pane-header">
             <div className="pane-title">
               <span>Records (JSON)</span>
@@ -321,27 +403,51 @@ export function Playground() {
                 {evaluation.records ? `${evaluation.records.length} items` : "invalid"}
               </span>
             </div>
-            <button
-              type="button"
-              className="editor-edit-badge"
-              onClick={() => recordsEditorRef.current?.focus()}
-            >
-              <EditIcon />
-              <span>Editable</span>
-            </button>
+            <div className="pane-header-actions">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json,.csv,application/json,text/csv"
+                className="sr-only"
+                aria-label="Import JSON or CSV records file"
+                onChange={handleFileInputChange}
+              />
+              <button
+                type="button"
+                className="editor-import-btn"
+                title="Import .json or .csv file (CSV headers auto-convert to JSON)"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <UploadIcon />
+                <span>Import</span>
+              </button>
+              <button
+                type="button"
+                className="editor-edit-badge"
+                onClick={() => recordsEditorRef.current?.focus()}
+              >
+                <EditIcon />
+                <span>Editable</span>
+              </button>
+            </div>
           </div>
           <JsonEditor
             textareaRef={recordsEditorRef}
             ariaLabel="Records JSON editor"
-            hasError={Boolean(evaluation.recordsError)}
-            hint="Click anywhere to edit or paste JSON records"
+            hasError={Boolean(evaluation.recordsError || importError)}
+            hint="Edit, paste JSON, or drop / import a .json or .csv file"
             highlightRange={activeRecordRange}
             value={recordsText}
-            onChange={setRecordsText}
+            onChange={handleRecordsChange}
           />
-          {evaluation.recordsError && (
+          {importNotice && !importError && !evaluation.recordsError && (
+            <div className="import-banner" role="status">
+              {importNotice}
+            </div>
+          )}
+          {(importError || evaluation.recordsError) && (
             <div className="error-banner" role="alert">
-              JSON error: {evaluation.recordsError}
+              {importError ? `Import error: ${importError}` : `JSON error: ${evaluation.recordsError}`}
             </div>
           )}
         </div>
