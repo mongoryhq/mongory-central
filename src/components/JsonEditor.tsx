@@ -15,6 +15,7 @@ import {
   type FieldSuggestion,
   type KeySuggestion,
 } from "../lib/conditionAutocomplete.js";
+import { computeEditorKeyEdit } from "../lib/editorKeyActions.js";
 import { HighlightedCode } from "./CodeBlock.js";
 
 interface JsonEditorProps {
@@ -147,9 +148,7 @@ export function JsonEditor({
   );
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (!autocompleteFields) return;
-
-    if (e.ctrlKey && e.code === "Space") {
+    if (autocompleteFields && e.ctrlKey && e.code === "Space") {
       e.preventDefault();
       const pos = e.currentTarget.selectionStart;
       setCursor(pos);
@@ -158,21 +157,60 @@ export function JsonEditor({
       return;
     }
 
-    if (!showMenu) return;
-
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setActiveIndex((i) => (i + 1) % suggestions.length);
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setActiveIndex((i) => (i - 1 + suggestions.length) % suggestions.length);
-    } else if (e.key === "Enter" || e.key === "Tab") {
-      e.preventDefault();
-      acceptSuggestion(suggestions[safeActiveIndex]);
-    } else if (e.key === "Escape") {
-      e.preventDefault();
-      setAcOpen(false);
+    if (showMenu) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setActiveIndex((i) => (i + 1) % suggestions.length);
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setActiveIndex((i) => (i - 1 + suggestions.length) % suggestions.length);
+        return;
+      }
+      if (e.key === "Enter" || e.key === "Tab") {
+        e.preventDefault();
+        acceptSuggestion(suggestions[safeActiveIndex]);
+        return;
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setAcOpen(false);
+        return;
+      }
     }
+
+    if (e.metaKey || e.ctrlKey || e.altKey) {
+      return;
+    }
+
+    const edit = computeEditorKeyEdit(
+      value,
+      e.currentTarget.selectionStart,
+      e.currentTarget.selectionEnd,
+      e.key,
+      e.shiftKey,
+    );
+    if (!edit) return;
+
+    e.preventDefault();
+    if (edit.nextText !== value) {
+      onChange(edit.nextText);
+    }
+    if (autocompleteFields) {
+      setCursor(edit.selectionStart);
+      if (edit.openAutocomplete) {
+        setAcOpen(true);
+      } else if (!detectJsonKeyContext(edit.nextText, edit.selectionStart)) {
+        setAcOpen(false);
+      }
+    }
+    requestAnimationFrame(() => {
+      const ta = textareaRef.current;
+      if (ta) {
+        ta.setSelectionRange(edit.selectionStart, edit.selectionEnd);
+      }
+    });
   };
 
   const menuStyle = useMemo(() => {
