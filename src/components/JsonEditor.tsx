@@ -96,6 +96,7 @@ export function JsonEditor({
   const gutterRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLUListElement>(null);
   const pendingSelectionRef = useRef<{ start: number; end: number } | null>(null);
+  const isProgrammaticEditRef = useRef(false);
   const tabEscapedRef = useRef(false);
   const menuId = useId();
 
@@ -184,11 +185,18 @@ export function JsonEditor({
         }
         return;
       }
-      if (ta && tryInsertViaExecCommand(ta, value, nextText)) {
-        // React's onChange already fired via execCommand; restore exact caret synchronously.
-        ta.setSelectionRange(selStart, selEnd);
-        pendingSelectionRef.current = null;
-        return;
+      if (ta) {
+        isProgrammaticEditRef.current = true;
+        let inserted = false;
+        try {
+          inserted = tryInsertViaExecCommand(ta, value, nextText);
+        } finally {
+          isProgrammaticEditRef.current = false;
+        }
+        if (inserted) {
+          ta.setSelectionRange(selStart, selEnd);
+          return;
+        }
       }
       onChange(nextText);
     },
@@ -353,7 +361,7 @@ export function JsonEditor({
               const nextVal = e.target.value;
               const pos = e.target.selectionStart;
               onChange(nextVal);
-              if (autocompleteFields) {
+              if (autocompleteFields && !isProgrammaticEditRef.current) {
                 setCursor(pos);
                 setAcOpen(true);
               }
