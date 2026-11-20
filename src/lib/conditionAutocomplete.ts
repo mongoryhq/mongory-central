@@ -78,10 +78,6 @@ export function extractRecordFieldSuggestions(records: unknown[] | null): FieldS
     for (const [k, v] of Object.entries(obj)) {
       const fullKey = prefix ? `${prefix}.${k}` : k;
       addKey(fullKey, v);
-      if (prefix) {
-        // Also collect bare leaf key for nested sub-document / $elemMatch contexts.
-        addKey(k, v);
-      }
       if (v !== null && typeof v === "object") {
         if (Array.isArray(v)) {
           for (let i = 0; i < Math.min(v.length, 10); i++) {

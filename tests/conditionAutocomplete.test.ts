@@ -19,7 +19,8 @@ test("extractRecordFieldSuggestions collects top-level keys, nested dot paths, a
   assert.ok(keys.includes("active"));
   assert.ok(keys.includes("address.city"));
   assert.ok(keys.includes("reviews.rating"));
-  assert.ok(keys.includes("rating"));
+  assert.equal(keys.includes("rating"), false);
+  assert.equal(keys.includes("city"), false);
 
   const age = fields.find((f) => f.key === "age");
   assert.equal(age?.detail, "number | null");
