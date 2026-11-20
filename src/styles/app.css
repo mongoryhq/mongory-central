@@ -915,6 +915,82 @@ textarea {
   color: transparent;
   -webkit-text-fill-color: transparent;
 }
+
+.ac-menu {
+  position: absolute;
+  z-index: 30;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  width: 256px;
+  max-height: 196px;
+  overflow-y: auto;
+  border-radius: 8px;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  background: #0d141e;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.62);
+}
+
+.ac-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 12.5px;
+  line-height: 20px;
+  color: #cbd5e1;
+}
+
+.ac-item.is-active {
+  background: rgba(56, 189, 248, 0.16);
+  color: #f8fafc;
+}
+
+.ac-badge {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 0 5px;
+  border-radius: 4px;
+  line-height: 16px;
+}
+
+.ac-badge-operator {
+  background: rgba(167, 139, 250, 0.18);
+  color: #c4b5fd;
+  border: 1px solid rgba(167, 139, 250, 0.32);
+}
+
+.ac-badge-field {
+  background: rgba(82, 227, 115, 0.14);
+  color: var(--brand);
+  border: 1px solid rgba(82, 227, 115, 0.28);
+}
+
+.ac-key {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: inherit;
+  white-space: nowrap;
+}
+
+.ac-detail {
+  margin-left: auto;
+  font-size: 11.5px;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ac-item.is-active .ac-detail {
+  color: #94a3b8;
+}
 .json-editor-footer {
   display: flex;
   align-items: center;

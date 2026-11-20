@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from "react";
 import { MongoryError, mongory, type ExplainNode } from "mongory-js";
 import { PRESETS } from "../data/presets.js";
+import { extractRecordFieldSuggestions } from "../lib/conditionAutocomplete.js";
 import { importRecordsFromText } from "../lib/importRecords.js";
 import {
   decodeShareState,
@@ -324,6 +325,11 @@ export function Playground() {
     return list;
   }, [evaluation.records, evaluation.results, resultFilter]);
 
+  const recordFieldSuggestions = useMemo(
+    () => extractRecordFieldSuggestions(evaluation.records),
+    [evaluation.records],
+  );
+
   const astNodes = countAstNodes(evaluation.explainTree);
 
   return (
@@ -491,7 +497,8 @@ export function Playground() {
             textareaRef={conditionEditorRef}
             ariaLabel="Query condition JSON editor"
             hasError={Boolean(evaluation.conditionError || evaluation.compileError)}
-            hint="Try editing $gte, $in, $or, or dot paths"
+            hint="Type a key or $operator for autocomplete (Tab / Enter)"
+            autocompleteFields={recordFieldSuggestions}
             value={conditionText}
             onChange={setConditionText}
           />
