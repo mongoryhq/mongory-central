@@ -412,15 +412,34 @@ export function Playground() {
                 aria-label="Import JSON or CSV records file"
                 onChange={handleFileInputChange}
               />
-              <button
-                type="button"
-                className="editor-import-btn"
-                title="Import .json or .csv file (CSV headers auto-convert to JSON)"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <UploadIcon />
-                <span>Import</span>
-              </button>
+              <div className="import-btn-wrap">
+                <button
+                  type="button"
+                  className="editor-import-btn"
+                  aria-describedby="import-rules-tooltip"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <UploadIcon />
+                  <span>Import</span>
+                </button>
+                <div id="import-rules-tooltip" className="import-tooltip" role="tooltip">
+                  <div className="import-tooltip-title">Import Rules (.json &amp; .csv only)</div>
+                  <ul className="import-tooltip-list">
+                    <li>
+                      <strong>JSON</strong>: Array <code>[...]</code> or single object <code>{"{...}"}</code>.
+                    </li>
+                    <li>
+                      <strong>CSV headers</strong>: Duplicate columns (e.g. <code>tag,tag</code>) merge into an array; blank cells are omitted.
+                    </li>
+                    <li>
+                      <strong>Excel &amp; types</strong>: Supports BOM, <code>sep=;</code>, <code>;</code>/<code>\t</code>, and unquoted numbers / <code>TRUE</code> / <code>FALSE</code> / <code>null</code>. Quoted values (<code>&quot;&quot;</code>, <code>&quot;42&quot;</code>) &amp; leading zeros stay strings.
+                    </li>
+                    <li>
+                      <strong>Local only</strong>: Parsed 100% in-browser; files never leave your device.
+                    </li>
+                  </ul>
+                </div>
+              </div>
               <button
                 type="button"
                 className="editor-edit-badge"
