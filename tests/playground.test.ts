@@ -58,8 +58,9 @@ test("JSON formatting and record preview helpers handle scalars, arrays, and obj
   assert.equal(formatRecordPreview(null), "null");
 });
 
-test("ecosystem hub covers all 4 languages, 17 operators, spec rules, and benchmarks", () => {
-  assert.equal(LANGUAGES.length, 4);
+test("ecosystem hub covers all 5 languages, 17 operators, spec rules, and benchmarks", () => {
+  assert.equal(LANGUAGES.length, 5);
+  assert.ok(LANGUAGES.some((l) => l.key === "py" && l.pkg === "mongory"));
   assert.equal(OPERATORS.length, 17);
   assert.ok(SPEC_RULES.length >= 5);
   assert.ok(BENCHMARKS.length >= 6);

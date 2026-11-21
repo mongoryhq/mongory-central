@@ -134,7 +134,7 @@ export function Hero({ onJump }: HeroProps) {
                 </div>
                 <div className="feature-tile-title">Language Support</div>
                 <p className="feature-tile-desc">
-                  Supports Ruby, C, Go, JavaScript
+                  Supports Python, TypeScript/JS, Go, Ruby, C99
                 </p>
               </button>
 

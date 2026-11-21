@@ -76,6 +76,34 @@ const KEYWORDS: Record<HighlightLang, ReadonlySet<string>> = {
     "break",
     "continue",
   ]),
+  py: new Set([
+    "import",
+    "from",
+    "as",
+    "def",
+    "class",
+    "return",
+    "if",
+    "elif",
+    "else",
+    "for",
+    "in",
+    "while",
+    "and",
+    "or",
+    "not",
+    "is",
+    "lambda",
+    "with",
+    "yield",
+    "pass",
+    "break",
+    "continue",
+    "raise",
+    "try",
+    "except",
+    "finally",
+  ]),
   rb: new Set([
     "require",
     "require_relative",
@@ -121,7 +149,7 @@ const KEYWORDS: Record<HighlightLang, ReadonlySet<string>> = {
   ]),
 };
 
-const BOOLS = new Set(["true", "false", "null", "undefined", "nil", "NULL", "nullptr"]);
+const BOOLS = new Set(["true", "false", "null", "undefined", "nil", "NULL", "nullptr", "True", "False", "None"]);
 const JSON_BOOLS = new Set(["true", "false", "null"]);
 
 const GO_TYPES = new Set([
@@ -221,6 +249,10 @@ function classifyIdentifier(word: string, code: string, endPos: number, lang: Hi
     return "directive";
   }
 
+  if (lang === "py" && /^[A-Z_]+$/.test(word) && code.slice(Math.max(0, endPos - word.length - 3), endPos - word.length) === "op.") {
+    return "op";
+  }
+
   if (KEYWORDS[lang].has(word)) return "kw";
 
   if (lang === "go" && GO_TYPES.has(word)) return "type";
@@ -274,21 +306,21 @@ export function tokenizeCode(code: string, lang: HighlightLang): CodeToken[] {
     }
 
     // Comments
-    if (lang === "rb" && ch === "#") {
+    if ((lang === "rb" || lang === "py") && ch === "#") {
       const nl = code.indexOf("\n", i);
       const end = nl === -1 ? code.length : nl;
       pushToken(tokens, "comment", code.slice(i, end));
       i = end;
       continue;
     }
-    if (lang !== "json" && lang !== "rb" && two === "//") {
+    if (lang !== "json" && lang !== "rb" && lang !== "py" && two === "//") {
       const nl = code.indexOf("\n", i);
       const end = nl === -1 ? code.length : nl;
       pushToken(tokens, "comment", code.slice(i, end));
       i = end;
       continue;
     }
-    if (lang !== "json" && lang !== "rb" && two === "/*") {
+    if (lang !== "json" && lang !== "rb" && lang !== "py" && two === "/*") {
       const close = code.indexOf("*/", i + 2);
       const end = close === -1 ? code.length : close + 2;
       pushToken(tokens, "comment", code.slice(i, end));
@@ -323,7 +355,7 @@ export function tokenizeCode(code: string, lang: HighlightLang): CodeToken[] {
       const afterStr = skipHorizSpaces(code, end);
       const isPropKey =
         isClosed &&
-        (lang === "json" || lang === "go") &&
+        (lang === "json" || lang === "go" || lang === "py") &&
         code[afterStr] === ":" &&
         code.slice(afterStr, afterStr + 2) !== "::";
 

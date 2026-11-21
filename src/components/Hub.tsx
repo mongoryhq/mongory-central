@@ -58,7 +58,7 @@ export function Hub() {
         <div className="section-heading">
           <h2>Cross-Language Ecosystem</h2>
           <p>
-            One query semantics contract across Ruby, Go, TypeScript/JS, and C99 — compiled once, zero runtime
+            One query semantics contract across Python, TypeScript/JS, Go, Ruby, and C99 — compiled once, zero runtime
             dependencies, built-in Explain/Trace debugging.
           </p>
         </div>
@@ -238,6 +238,11 @@ export function Hub() {
         </div>
 
         <p className="bench-footnote">
+          Python note (<code>mongory-py v0.1.0</code> on CPython 3.14, <code>mongory-core</code> C99 extension, 10k records):{" "}
+          <code>simple</code> runs in <strong>89.2 ns/rec</strong>, <code>or</code> in <strong>131.8 ns/rec</strong>, and{" "}
+          <code>nested_and</code> in <strong>135.9 ns/rec</strong> — <strong>2.1x–5.4x faster</strong> than type-safe pure
+          Python and faster than naive handwritten checks without <code>bool</code>/<code>int</code> guards.
+          <br />
           Ruby note (from <code>mongory-rb/docs/performance.md</code>, 100k records): enabling the C extension (
           <code>mongory-core</code> arena pool) brings simple filters from ~119 ms (pure Ruby) down to ~15 ms (~150 ns/record),
           and complex <code>$or</code> queries from ~107 ms down to ~23 ms.

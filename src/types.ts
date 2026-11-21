@@ -17,7 +17,7 @@ export interface Preset {
   defaultSelectedIndex: number;
 }
 
-export type LangKey = "js" | "go" | "rb" | "core";
+export type LangKey = "js" | "go" | "py" | "rb" | "core";
 
 export interface LanguageDoc {
   key: LangKey;

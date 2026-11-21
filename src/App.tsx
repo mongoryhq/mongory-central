@@ -51,13 +51,16 @@ export function App() {
       </main>
       <footer className="footer">
         <div className="footer-inner">
-          <span>Mongory · MIT Licensed · Unified cross-language query matcher (JS / Go / Ruby / C99)</span>
+          <span>Mongory · MIT Licensed · Unified cross-language query matcher (JS / Go / Python / Ruby / C99)</span>
           <div className="footer-links">
             <a href="https://github.com/mongoryhq/mongory-js" target="_blank" rel="noreferrer">
               mongory-js
             </a>
             <a href="https://github.com/mongoryhq/mongory-go" target="_blank" rel="noreferrer">
               mongory-go
+            </a>
+            <a href="https://github.com/mongoryhq/mongory-py" target="_blank" rel="noreferrer">
+              mongory-py
             </a>
             <a href="https://github.com/mongoryhq/mongory-rb" target="_blank" rel="noreferrer">
               mongory-rb

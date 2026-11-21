@@ -57,6 +57,32 @@ func filterUsers(users []mongory.M) ([]mongory.M, string) {
 }`,
   },
   {
+    key: "py",
+    name: "Python",
+    pkg: "mongory",
+    version: "v0.1.0",
+    repoUrl: "https://github.com/mongoryhq/mongory-py",
+    installCmd: "pip install mongory",
+    runtime: "Python 3.10–3.14 · CPython C-API over mongory-core (C99) · 0 runtime deps · .pyi stubs",
+    highlights: [
+      "Native C99 engine (`mongory-core`) with shallow `PyObject*` adapters — 2.1x–5.4x faster than type-safe pure Python",
+      "Immune to Python's `bool <: int` trap (`True != 1`, `False != 0`) across `$eq`, `$in`, and ordering operators",
+      "Ergonomic `mongory.op` constants (`op.GTE`, `op.IN`), `re.compile` support, and callable `filter(matcher, records)`",
+      "Precompiled wheels for Linux (x86_64/aarch64 glibc & musl), macOS (Intel & Apple Silicon), and Windows AMD64",
+    ],
+    code: `import mongory
+from mongory import op
+
+matcher = mongory.compile({
+    "status": "active",
+    "age": {op.GTE: 18},
+    op.OR: [{"tags": "py"}, {"role": "admin"}],
+})
+
+matched = matcher.filter_list(users)
+ok, trace_tree = matcher.trace_tree(users[0])`,
+  },
+  {
     key: "rb",
     name: "Ruby",
     pkg: "mongory",
@@ -95,7 +121,7 @@ query.trace { |u| puts u }`,
       "Arena memory-pool architecture (`mongory_memory_pool`) eliminates per-node free churn",
       "Thread-safe matcher compilation with per-pool locking and reusable scratch pools",
       "Pluggable regex engine & external value adapters (`MG_TABLE_WRAP`, custom converters)",
-      "Foundation backing `mongory-rb` native C acceleration and future language bindings",
+      "Shared C99 foundation backing both `mongory-py` (CPython C-API) and `mongory-rb` native C extensions",
     ],
     code: `#include <mongory-core.h>
 

@@ -39,6 +39,14 @@ test("tokenizeCode classifies key tokens across js, go, rb, and core", () => {
   assert.ok(goTokens.some((t) => t.kind === "op" && t.text === '"$in"'));
   assert.ok(goTokens.some((t) => t.kind === "str" && t.text === '"pro"'));
 
+  const pyTokens = tokenizeCode('from mongory import op\n# python c99\nm = mongory.compile({"age": {op.GTE: 18}, "ok": True})', "py");
+  assert.ok(pyTokens.some((t) => t.kind === "kw" && t.text === "from"));
+  assert.ok(pyTokens.some((t) => t.kind === "comment" && t.text === "# python c99"));
+  assert.ok(pyTokens.some((t) => t.kind === "fn" && t.text === "compile"));
+  assert.ok(pyTokens.some((t) => t.kind === "prop" && t.text === '"age"'));
+  assert.ok(pyTokens.some((t) => t.kind === "op" && t.text === "GTE"));
+  assert.ok(pyTokens.some((t) => t.kind === "bool" && t.text === "True"));
+
   const rbTokens = tokenizeCode('require "mongory"\n# symbol extension\nc = Mongory.build_condition(:age.gte => 18, :plan => "pro")', "rb");
   assert.ok(rbTokens.some((t) => t.kind === "kw" && t.text === "require"));
   assert.ok(rbTokens.some((t) => t.kind === "comment" && t.text === "# symbol extension"));
