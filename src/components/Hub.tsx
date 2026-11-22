@@ -120,16 +120,16 @@ export function Hub() {
         </div>
       </section>
 
-      {/* Operators & mongory-spec v0.2.0 */}
+      {/* Operators & mongory-spec v0.2.1 */}
       <section id="operators" className="hub-section">
         <div className="section-heading">
-          <h2>17 Operators &amp; mongory-spec v0.2.0</h2>
+          <h2>17 Operators &amp; mongory-spec v0.2.1</h2>
           <p>
             Verified against{" "}
             <a href="https://github.com/mongoryhq/mongory-spec" target="_blank" rel="noreferrer">
               mongory-spec
             </a>{" "}
-            cross-language conformance fixtures (17 files · 102 suites · 401 record assertions).
+            cross-language conformance fixtures (17 files · 444 assertions).
           </p>
         </div>
 
@@ -238,7 +238,7 @@ export function Hub() {
         </div>
 
         <p className="bench-footnote">
-          Python note (<code>mongory-py v0.1.0</code> on CPython 3.14, <code>mongory-core</code> C99 extension, 10k records):{" "}
+          Python note (<code>mongory-py v0.1.1</code> on CPython 3.14, <code>mongory-core</code> C99 extension, 10k records):{" "}
           <code>simple</code> runs in <strong>89.2 ns/rec</strong>, <code>or</code> in <strong>131.8 ns/rec</strong>, and{" "}
           <code>nested_and</code> in <strong>135.9 ns/rec</strong> — <strong>2.1x–5.4x faster</strong> than type-safe pure
           Python and faster than naive handwritten checks without <code>bool</code>/<code>int</code> guards.

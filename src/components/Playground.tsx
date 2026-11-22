@@ -524,7 +524,7 @@ export function Playground() {
           <div className="pane-header">
             <div className="pane-title">
               <span>Query Condition (JSON)</span>
-              <span className="pill pill-cyan">mongory-spec v0.2.0</span>
+              <span className="pill pill-cyan">mongory-spec v0.2.1</span>
             </div>
             <button
               type="button"

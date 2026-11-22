@@ -30,7 +30,7 @@ export function Hero({ onJump }: HeroProps) {
           <p className="hero-tagline">
             Zero-database query matching &amp; visual Explain/Trace unified by{" "}
             <a href="https://github.com/mongoryhq/mongory-spec" target="_blank" rel="noreferrer">
-              mongory-spec v0.2.0
+              mongory-spec v0.2.1
             </a>
             .
           </p>
