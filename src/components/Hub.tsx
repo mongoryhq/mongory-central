@@ -238,7 +238,7 @@ export function Hub() {
         </div>
 
         <p className="bench-footnote">
-          Python note (<code>mongory-py v0.1.1</code> on CPython 3.14, <code>mongory-core</code> C99 extension, 10k records):{" "}
+          Python note (<code>mongory-py v0.2.0</code> on CPython 3.14, <code>mongory-core</code> C99 extension, 10k records):{" "}
           <code>simple</code> runs in <strong>89.2 ns/rec</strong>, <code>or</code> in <strong>131.8 ns/rec</strong>, and{" "}
           <code>nested_and</code> in <strong>135.9 ns/rec</strong> — <strong>2.1x–5.4x faster</strong> than type-safe pure
           Python and faster than naive handwritten checks without <code>bool</code>/<code>int</code> guards.

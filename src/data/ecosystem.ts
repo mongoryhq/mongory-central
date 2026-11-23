@@ -60,7 +60,7 @@ func filterUsers(users []mongory.M) ([]mongory.M, string) {
     key: "py",
     name: "Python",
     pkg: "mongory",
-    version: "v0.1.1",
+    version: "v0.2.0",
     repoUrl: "https://github.com/mongoryhq/mongory-py",
     installCmd: "pip install mongory",
     runtime: "Python 3.10–3.14 · CPython C-API over mongory-core (C99) · 0 runtime deps · .pyi stubs",
