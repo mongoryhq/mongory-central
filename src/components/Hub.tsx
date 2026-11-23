@@ -201,7 +201,7 @@ export function Hub() {
           <h2>Measured Benchmarks</h2>
           <p>
             Direct measurements on Apple M3 (macOS arm64) over 10,000-record in-memory datasets comparing{" "}
-            <code>mongory-js@0.1.1</code> (Node v23.1.0 / Bun 1.3.14) and <code>mongory-go v0.3.0</code> (pure Go map
+            <code>mongory-js@0.2.0</code> (Node v23.1.0 / Bun 1.3.14) and <code>mongory-go v0.4.0</code> (pure Go map
             queries). Note O(1) bucketed <code>$in</code> lookup keeps 500-element membership near constant time.
           </p>
         </div>
