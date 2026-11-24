@@ -1,4 +1,4 @@
-import type { BenchmarkRow, LanguageDoc, OperatorSpec } from "../types.js";
+import type { BenchmarkRow, CompetitorBenchmarkRow, LanguageDoc, OperatorSpec } from "../types.js";
 
 export const LANGUAGES: ReadonlyArray<LanguageDoc> = [
   {
@@ -188,4 +188,61 @@ export const BENCHMARKS: ReadonlyArray<BenchmarkRow> = [
   { caseName: "in_array_field", description: "tags $in [go, rust]", jsNodeNs: "39.0 ns", jsBunNs: "15.3 ns", goMapsNs: "45.20 ns", goAlloc: "0 allocs/op" },
   { caseName: "large_in_500", description: "name $in [500 items] (Set lookup)", jsNodeNs: "41.9 ns", jsBunNs: "16.1 ns", goMapsNs: "28.13 ns", goAlloc: "0 allocs/op" },
   { caseName: "regex", description: "name $regex ^user[a-f]$", jsNodeNs: "39.7 ns", jsBunNs: "17.3 ns", goMapsNs: "44.37 ns", goAlloc: "0 allocs/op" },
+];
+
+export const COMPETITOR_BENCHMARKS: ReadonlyArray<CompetitorBenchmarkRow> = [
+  {
+    language: "TypeScript / JS",
+    mongoryPkg: "mongory-js v0.2.0",
+    peerLib: "sift (^17.1.4)",
+    standardSpeedup: "1.5x–6.9x faster",
+    largeInSpeedup: "255x–353x faster",
+    notes: "Node 23, mono & poly datasets; 0 deps",
+    benchUrl: "https://github.com/mongoryhq/mongory-js/blob/main/docs/performance.md",
+  },
+  {
+    language: "TypeScript / JS",
+    mongoryPkg: "mongory-js v0.2.0",
+    peerLib: "mingo (^7.2.7)",
+    standardSpeedup: "2.6x–5.8x faster",
+    largeInSpeedup: "203x–282x faster",
+    notes: "Node 23, mono & poly datasets; 0 deps",
+    benchUrl: "https://github.com/mongoryhq/mongory-js/blob/main/docs/performance.md",
+  },
+  {
+    language: "Go",
+    mongoryPkg: "mongory-go v0.4.0",
+    peerLib: "256dpi/lungo/mongokit (v0.4.0)",
+    standardSpeedup: "1.14x–2.44x faster",
+    largeInSpeedup: "87.9x faster",
+    notes: "0 allocs/op vs 10k–16k allocs/op",
+    benchUrl: "https://github.com/mongoryhq/mongory-go/blob/main/docs/performance.md",
+  },
+  {
+    language: "Go",
+    mongoryPkg: "mongory-go v0.4.0",
+    peerLib: "SierraSoftworks/connor (v1.0.2)",
+    standardSpeedup: "3.55x–5.34x faster",
+    largeInSpeedup: "172.5x faster",
+    notes: "0 allocs/op vs 10k–21k allocs/op",
+    benchUrl: "https://github.com/mongoryhq/mongory-go/blob/main/docs/performance.md",
+  },
+  {
+    language: "Python",
+    mongoryPkg: "mongory v0.2.0",
+    peerLib: "mongoquery (1.4.3)",
+    standardSpeedup: "9.2x–25.8x faster",
+    largeInSpeedup: "—",
+    notes: "CPython 3.14; 1.29x–2.84x vs defensive pure Python",
+    benchUrl: "https://github.com/mongoryhq/mongory-py/blob/main/docs/performance.md",
+  },
+  {
+    language: "Ruby",
+    mongoryPkg: "mongory v2.1.0",
+    peerLib: "Mongoid::Matcher (mongoid 9.1.2)",
+    standardSpeedup: "27.9x–46.6x faster",
+    largeInSpeedup: "60.7x faster",
+    notes: "Ruby 4.0.5, 100k records; simple on par with plain Ruby (76.3 vs 63.3 ns/rec)",
+    benchUrl: "https://github.com/mongoryhq/mongory-rb/blob/main/docs/performance.md",
+  },
 ];

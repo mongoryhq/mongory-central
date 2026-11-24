@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BENCHMARKS, LANGUAGES, OPERATORS, SPEC_RULES } from "../data/ecosystem.js";
+import { BENCHMARKS, COMPETITOR_BENCHMARKS, LANGUAGES, OPERATORS, SPEC_RULES } from "../data/ecosystem.js";
 import type { LangKey, OperatorCategory } from "../types.js";
 import { CodeBlock, HighlightedCode } from "./CodeBlock.js";
 
@@ -237,15 +237,62 @@ export function Hub() {
           </table>
         </div>
 
+        <div className="section-heading" style={{ marginTop: "2.25rem" }}>
+          <h3>Peer Library Comparison</h3>
+          <p>
+            Reproducible head-to-head benchmarks against existing in-memory MongoDB-style query matchers in each
+            ecosystem (Apple M3, macOS arm64).
+          </p>
+        </div>
+
+        <div className="table-wrap">
+          <table className="bench-table">
+            <thead>
+              <tr>
+                <th>Language</th>
+                <th>Peer Library</th>
+                <th>Standard Queries</th>
+                <th>500-Item <code>$in</code></th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {COMPETITOR_BENCHMARKS.map((row) => (
+                <tr key={`${row.language}-${row.peerLib}`}>
+                  <td>
+                    <strong>{row.language}</strong>
+                    <div className="mono-cell" style={{ fontSize: "0.78rem", opacity: 0.75 }}>
+                      {row.mongoryPkg}
+                    </div>
+                  </td>
+                  <td>
+                    <code>{row.peerLib}</code>
+                  </td>
+                  <td>
+                    <span className="pill pill-pass">{row.standardSpeedup}</span>
+                  </td>
+                  <td className="mono-cell accent-cell">{row.largeInSpeedup}</td>
+                  <td>
+                    {row.notes}{" "}
+                    <a href={row.benchUrl} target="_blank" rel="noreferrer">
+                      details ↗
+                    </a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
         <p className="bench-footnote">
-          Python note (<code>mongory-py v0.2.0</code> on CPython 3.14, <code>mongory-core</code> C99 extension, 10k records):{" "}
-          <code>simple</code> runs in <strong>89.2 ns/rec</strong>, <code>or</code> in <strong>131.8 ns/rec</strong>, and{" "}
-          <code>nested_and</code> in <strong>135.9 ns/rec</strong> — <strong>2.1x–5.4x faster</strong> than type-safe pure
-          Python and faster than naive handwritten checks without <code>bool</code>/<code>int</code> guards.
+          Python (<code>mongory-py v0.2.0</code>, CPython 3.14): <code>simple</code> runs in <strong>88.2 ns/rec</strong>
+          , <code>or</code> in <strong>120.1 ns/rec</strong>, and <code>nested_and</code> in <strong>127.3 ns/rec</strong>{" "}
+          (on par with or ahead of handwritten plain Python on structural filters, and <strong>9.2x–25.8x faster</strong>{" "}
+          than <code>mongoquery</code>).
           <br />
-          Ruby note (from <code>mongory-rb/docs/performance.md</code>, 100k records): enabling the C extension (
-          <code>mongory-core</code> arena pool) brings simple filters from ~119 ms (pure Ruby) down to ~15 ms (~150 ns/record),
-          and complex <code>$or</code> queries from ~107 ms down to ~23 ms.
+          Ruby (<code>mongory-rb v2.1.0</code>, Ruby 4.0.5, 100k records): <code>simple</code> runs in{" "}
+          <strong>76.3 ns/rec</strong> vs <strong>63.3 ns/rec</strong> for plain Ruby <code>Array#count</code>, and{" "}
+          <strong>27.9x–60.7x faster</strong> than <code>Mongoid::Matcher</code> with zero external gem dependencies.
         </p>
       </section>
     </div>

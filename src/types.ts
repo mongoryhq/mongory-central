@@ -57,6 +57,16 @@ export interface BenchmarkRow {
   goAlloc: string;
 }
 
+export interface CompetitorBenchmarkRow {
+  language: string;
+  mongoryPkg: string;
+  peerLib: string;
+  standardSpeedup: string;
+  largeInSpeedup: string;
+  notes: string;
+  benchUrl: string;
+}
+
 export interface SharePayload {
   preset?: PresetId;
   recordsText: string;
