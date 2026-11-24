@@ -285,14 +285,16 @@ export function Hub() {
         </div>
 
         <p className="bench-footnote">
-          Python (<code>mongory-py v0.2.0</code>, CPython 3.14): <code>simple</code> runs in <strong>88.2 ns/rec</strong>
-          , <code>or</code> in <strong>120.1 ns/rec</strong>, and <code>nested_and</code> in <strong>127.3 ns/rec</strong>{" "}
-          (on par with or ahead of handwritten plain Python on structural filters, and <strong>9.2x–25.8x faster</strong>{" "}
-          than <code>mongoquery</code>).
+          Python (<code>mongory-py v0.2.1</code>, CPython 3.14): <code>simple</code> runs in <strong>86.8 ns/rec</strong>
+          , <code>or</code> in <strong>123.3 ns/rec</strong>, and <code>large_in_500</code> in{" "}
+          <strong>111.6 ns/rec</strong> (on par with or ahead of handwritten plain Python on structural filters, and{" "}
+          <strong>9.2x–24.1x faster</strong> than <code>mongoquery</code>, <strong>2,191x–2,314x</strong> on 500-item{" "}
+          <code>$in</code>).
           <br />
-          Ruby (<code>mongory-rb v2.1.0</code>, Ruby 4.0.5, 100k records): <code>simple</code> runs in{" "}
-          <strong>76.3 ns/rec</strong> vs <strong>63.3 ns/rec</strong> for plain Ruby <code>Array#count</code>, and{" "}
-          <strong>27.9x–60.7x faster</strong> than <code>Mongoid::Matcher</code> with zero external gem dependencies.
+          Ruby (<code>mongory-rb v2.1.1</code>, Ruby 4.0.5, 100k records): <code>simple</code> runs in{" "}
+          <strong>77.9 ns/rec</strong> vs <strong>63.1 ns/rec</strong> for plain Ruby <code>Array#count</code>, and{" "}
+          <strong>31.1x–41.4x faster</strong> than <code>Mongoid::Matcher</code> (<strong>840.7x</strong> on 500-item{" "}
+          <code>$in</code>) with zero external gem dependencies.
         </p>
       </section>
     </div>
