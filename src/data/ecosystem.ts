@@ -65,7 +65,7 @@ func filterUsers(users []mongory.M) ([]mongory.M, string) {
     installCmd: "pip install mongory",
     runtime: "Python 3.10–3.14 · CPython C-API over mongory-core (C99) · 0 runtime deps · .pyi stubs",
     highlights: [
-      "Native C99 engine (`mongory-core`) with shallow `PyObject*` adapters — 2.1x–5.4x faster than type-safe pure Python",
+      "Native C99 engine (`mongory-core`) with shallow `PyObject*` adapters — 1.2x–2.9x faster than semantics-equivalent pure Python",
       "Immune to Python's `bool <: int` trap (`True != 1`, `False != 0`) across `$eq`, `$in`, and ordering operators",
       "Ergonomic `mongory.op` constants (`op.GTE`, `op.IN`), `re.compile` support, and callable `filter(matcher, records)`",
       "Precompiled wheels for Linux (x86_64/aarch64 glibc & musl), macOS (Intel & Apple Silicon), and Windows AMD64",
