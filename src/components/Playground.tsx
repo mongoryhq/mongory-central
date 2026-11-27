@@ -177,7 +177,6 @@ export function Playground() {
     return {
       records: parsedRecords,
       recordsError,
-      condition: parsedCondition,
       conditionError,
       compileError,
       compileUs,

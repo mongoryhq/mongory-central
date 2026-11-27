@@ -77,7 +77,6 @@ export interface SharePayload {
 export interface EvaluationState {
   records: unknown[] | null;
   recordsError: string | null;
-  condition: Record<string, unknown> | null;
   conditionError: string | null;
   compileError: string | null;
   compileUs: number | null;
